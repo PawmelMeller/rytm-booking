@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Sprawdź potencjał koncertowy artysty w wybranym mieście.">
+  <title>Rytm — potencjał koncertowy</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="ambient ambient-one"></div>
+  <div class="ambient ambient-two"></div>
+
+  <header class="site-header">
+    <a class="brand" href="#" aria-label="Rytm, strona główna">
+      <span class="brand-mark" aria-hidden="true">
+        <i></i><i></i><i></i><i></i>
+      </span>
+      <span>rytm</span>
+    </a>
+    <span class="header-note">Dane dla mądrzejszych bookingów</span>
+  </header>
+
+  <main>
+    <section class="hero" id="search-section">
+      <div class="eyebrow"><span></span> Analiza potencjału koncertowego</div>
+      <h1>Sprawdź, czy ten artysta<br><em>zagra w Twoim mieście.</em></h1>
+      <p class="hero-copy">
+        Wpisz artystę i miasto. Zobacz lokalny popyt, konkurencję
+        i potencjał sprzedaży biletów.
+      </p>
+
+      <form class="search-card" id="search-form">
+        <label class="field">
+          <span class="field-label">Artysta</span>
+          <span class="input-wrap">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="11" cy="11" r="6.5"></circle>
+              <path d="m16 16 4 4"></path>
+            </svg>
+            <input id="artist" name="artist" type="text" placeholder="np. Fred again.." autocomplete="off" required>
+          </span>
+        </label>
+
+        <span class="search-divider" aria-hidden="true"></span>
+
+        <label class="field">
+          <span class="field-label">Miasto</span>
+          <span class="input-wrap">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"></path>
+              <circle cx="12" cy="10" r="2.5"></circle>
+            </svg>
+            <input id="city" name="city" type="text" placeholder="np. Gdańsk" autocomplete="off" required>
+          </span>
+        </label>
+
+        <button type="submit">
+          <span>Analizuj potencjał</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 12h14M14 7l5 5-5 5"></path>
+          </svg>
+        </button>
+      </form>
+
+      <div class="trust-row" aria-label="Źródła danych">
+        <span>Analiza oparta na</span>
+        <strong>trendach lokalnych</strong>
+        <i></i>
+        <strong>historii wydarzeń</strong>
+        <i></i>
+        <strong>sygnałach popytu</strong>
+      </div>
+    </section>
+
+    <section class="results" id="results" aria-live="polite" hidden>
+      <div class="result-heading">
+        <div>
+          <div class="eyebrow"><span></span> Raport bookingowy</div>
+          <h2><span id="result-artist">Fred again..</span> <small>w</small> <span id="result-city">Gdańsku</span></h2>
+        </div>
+        <button class="new-search" id="new-search" type="button">Nowe wyszukiwanie</button>
+      </div>
+
+      <div class="dashboard">
+        <article class="score-card">
+          <div class="score-top">
+            <span class="card-kicker">Potencjał rynku</span>
+            <span class="confidence">Wysoka pewność</span>
+          </div>
+          <div class="score-main">
+            <div class="score-ring" style="--score: 82">
+              <div><strong id="score">82</strong><span>/100</span></div>
+            </div>
+            <div class="score-copy">
+              <h3 id="verdict">Mocny kandydat</h3>
+              <p id="verdict-copy">Lokalny popyt i dynamika artysty wskazują na dobry potencjał wydarzenia.</p>
+            </div>
+          </div>
+          <div class="recommendation">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 3v18M3 12h18"></path>
+            </svg>
+            <p><span>Rekomendacja</span><strong id="recommendation">Rozważ venue na 1 200–1 600 osób</strong></p>
+          </div>
+        </article>
+
+        <div class="metric-grid">
+          <article class="metric-card">
+            <span class="metric-icon demand">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18V9m5 9V5m6 13v-7m5 7V3"></path></svg>
+            </span>
+            <div><span>Lokalny popyt</span><strong id="demand-value">Wysoki</strong></div>
+            <small id="demand-change">+18% w 90 dni</small>
+          </article>
+          <article class="metric-card">
+            <span class="metric-icon audience">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm10 10v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+            </span>
+            <div><span>Aktywna publiczność</span><strong id="audience-value">24,8 tys.</strong></div>
+            <small>miasto + 45 min dojazdu</small>
+          </article>
+          <article class="metric-card">
+            <span class="metric-icon competition">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M8 12h8M12 8v8"></path></svg>
+            </span>
+            <div><span>Konkurencja</span><strong id="competition-value">Niska</strong></div>
+            <small id="competition-copy">2 podobne wydarzenia</small>
+          </article>
+          <article class="metric-card">
+            <span class="metric-icon tickets">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8a2 2 0 0 0 2-2h14a2 2 0 0 0 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 0-2 2H5a2 2 0 0 0-2-2v-2a2 2 0 0 0 0-4V8Z"></path><path d="M13 6v12"></path></svg>
+            </span>
+            <div><span>Potencjał sprzedaży</span><strong id="tickets-value">1 340</strong></div>
+            <small>estymowana mediana</small>
+          </article>
+        </div>
+
+        <article class="signal-card">
+          <div class="card-title">
+            <div>
+              <span class="card-kicker">Najważniejsze sygnały</span>
+              <h3>Co wpływa na wynik?</h3>
+            </div>
+            <span class="updated">Aktualizacja: dzisiaj</span>
+          </div>
+          <div class="signals" id="signals"></div>
+        </article>
+
+        <article class="range-card">
+          <div>
+            <span class="card-kicker">Prognoza frekwencji</span>
+            <h3>Scenariusze sprzedaży</h3>
+          </div>
+          <div class="range-chart">
+            <div class="range-track">
+              <span class="range-fill"></span>
+              <i class="marker p10"></i>
+              <i class="marker p50"></i>
+              <i class="marker p90"></i>
+            </div>
+            <div class="range-labels">
+              <span><small>Ostrożny</small><strong id="p10">880</strong></span>
+              <span><small>Realny</small><strong id="p50">1 340</strong></span>
+              <span><small>Optymistyczny</small><strong id="p90">1 720</strong></span>
+            </div>
+          </div>
+          <p class="disclaimer">Estymacja kierunkowa na podstawie danych rynkowych. Wynik nie stanowi gwarancji sprzedaży.</p>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <span>rytm / booking intelligence</span>
+    <span>Prościej oceniać. Lepiej bookować.</span>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
