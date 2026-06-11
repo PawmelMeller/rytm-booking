@@ -4,6 +4,7 @@ import {
   normalizeArtistHistory,
   normalizeCity
 } from "./lib/analysis-core.js";
+import { calculateBreakEven } from "./lib/economics.js";
 import { toLocative } from "./lib/polish-cities.js";
 import { createAutocomplete, fetchArtistSuggestions, fetchCitySuggestions } from "./lib/autocomplete.js";
 
@@ -13,6 +14,14 @@ const searchSection = document.querySelector("#search-section");
 const skeleton = document.querySelector("#skeleton");
 const newSearchButton = document.querySelector("#new-search");
 const toastContainer = document.querySelector("#toast-container");
+const economicsInputs = {
+  fixedCosts: document.querySelector("#fixed-costs"),
+  ticketPrice: document.querySelector("#ticket-price"),
+  ticketFeesPercent: document.querySelector("#ticket-fees"),
+  variableCostPerAttendee: document.querySelector("#variable-cost"),
+  ancillaryRevenuePerAttendee: document.querySelector("#ancillary-revenue")
+};
+let currentAnalysis = null;
 
 /* ── Toast notifications ── */
 
@@ -43,6 +52,18 @@ const hideSkeleton = () => {
 /* ── Formatting helpers ── */
 
 const formatNumber = (number) => new Intl.NumberFormat("pl-PL").format(number);
+const formatCurrency = (number) => new Intl.NumberFormat("pl-PL", {
+  style: "currency",
+  currency: "PLN",
+  maximumFractionDigits: 0
+}).format(number);
+
+const setProfit = (selector, value) => {
+  const element = document.querySelector(selector);
+  element.textContent = formatCurrency(value);
+  element.classList.toggle("profit-positive", value >= 0);
+  element.classList.toggle("profit-negative", value < 0);
+};
 
 const fetchJson = async (url, options) => {
   const response = await fetch(url, options);
@@ -97,7 +118,63 @@ const setText = (selector, value) => {
   document.querySelector(selector).textContent = value;
 };
 
+const renderSpotify = (spotify) => {
+  const link = document.querySelector("#spotify-link");
+  if (!spotify?.artist) {
+    setText("#spotify-title", spotify?.configured
+      ? "Nie znaleziono zgodnego profilu"
+      : "Integracja gotowa na klucze API");
+    setText("#spotify-followers", "—");
+    setText("#spotify-popularity", "—");
+    setText("#spotify-genres", "—");
+    setText("#spotify-note", spotify?.configured
+      ? "Spotify jest połączone, ale wyszukiwanie nie zwróciło pewnego dopasowania."
+      : "Dodaj SPOTIFY_CLIENT_ID i SPOTIFY_CLIENT_SECRET na serwerze. Spotify nie wpływa na scoring.");
+    link.hidden = true;
+    return;
+  }
+
+  setText("#spotify-title", spotify.artist.name);
+  setText("#spotify-followers", formatNumber(spotify.artist.followers));
+  setText("#spotify-popularity", `${spotify.artist.popularity}/100`);
+  setText("#spotify-genres", spotify.artist.genres.slice(0, 4).join(", ") || "Brak danych");
+  setText("#spotify-note", "Surowe pola katalogowe Spotify. Popularność i obserwujący są przez Spotify oznaczone jako pola deprecated i nie wpływają na model.");
+  link.href = spotify.artist.url;
+  link.hidden = !spotify.artist.url;
+};
+
+const renderEconomics = () => {
+  if (!currentAnalysis) return;
+  const result = calculateBreakEven({
+    fixedCosts: economicsInputs.fixedCosts.value,
+    ticketPrice: economicsInputs.ticketPrice.value,
+    ticketFeesPercent: economicsInputs.ticketFeesPercent.value,
+    variableCostPerAttendee: economicsInputs.variableCostPerAttendee.value,
+    ancillaryRevenuePerAttendee: economicsInputs.ancillaryRevenuePerAttendee.value,
+    attendance: currentAnalysis.attendance
+  });
+
+  setText("#break-even-attendance", result.breakEvenAttendance === null
+    ? "Nieosiągalny"
+    : formatNumber(result.breakEvenAttendance));
+  setText("#net-ticket-revenue", formatCurrency(result.netTicketRevenue));
+  setText("#contribution-per-head", formatCurrency(result.contributionPerAttendee));
+
+  for (const key of ["p10", "p50", "p90"]) {
+    const scenario = result.scenarios[key];
+    setProfit(`#profit-${key}`, scenario.profit);
+    setText(`#profit-${key}-attendance`, `${formatNumber(scenario.attendance)} osób`);
+  }
+
+  const realProfit = result.scenarios.p50.profit;
+  const status = document.querySelector("#economics-status");
+  status.textContent = realProfit >= 0 ? "P50 powyżej zera" : "P50 poniżej zera";
+  status.classList.toggle("is-positive", realProfit >= 0);
+  status.classList.toggle("is-negative", realProfit < 0);
+};
+
 const showAnalysis = (analysis) => {
+  currentAnalysis = analysis;
   const { artist, city } = analysis;
   const competitionCount = analysis.market.competitionCount;
   const competitionLabel = competitionCount === null
@@ -130,6 +207,7 @@ const showAnalysis = (analysis) => {
   setText("#p90", formatNumber(analysis.attendance.p90));
   setText("#coverage", analysis.coverage === "live" ? "Dane live" : "Dane częściowe");
   setText("#updated", `Źródła: ${analysis.sources.map((source) => source.name).join(", ")}`);
+  renderSpotify(analysis.spotify);
 
   document.querySelector(".score-ring").style.setProperty("--score", analysis.score);
   const signalsContainer = document.querySelector("#signals");
@@ -153,6 +231,7 @@ const showAnalysis = (analysis) => {
 
   hideSkeleton();
   results.hidden = false;
+  renderEconomics();
   results.scrollIntoView({ behavior: "smooth", block: "start" });
 };
 
@@ -197,6 +276,10 @@ createAutocomplete({
   input: document.querySelector("#artist"),
   fetchSuggestions: fetchArtistSuggestions,
   onSelect: () => document.querySelector("#city").focus()
+});
+
+Object.values(economicsInputs).forEach((input) => {
+  input.addEventListener("input", renderEconomics);
 });
 
 createAutocomplete({

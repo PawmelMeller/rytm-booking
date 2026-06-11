@@ -309,7 +309,7 @@ h1 em {
   gap: 14px;
 }
 
-.score-card, .signal-card, .range-card {
+.score-card, .signal-card, .range-card, .spotify-card, .economics-card {
   border: 1px solid var(--line);
   background: linear-gradient(145deg, rgba(30, 32, 29, 0.98), rgba(21, 23, 20, 0.98));
   border-radius: 16px;
@@ -507,6 +507,149 @@ h1 em {
   color: #555750;
   font-size: 8px;
 }
+
+.spotify-card,
+.economics-card {
+  grid-column: 1 / -1;
+  padding: 28px;
+}
+
+.spotify-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.spotify-heading h3 { margin: 5px 0 0; font-size: 21px; }
+
+.spotify-mark {
+  padding: 8px 12px;
+  color: #1ed760;
+  border: 1px solid rgba(30, 215, 96, 0.24);
+  background: rgba(30, 215, 96, 0.06);
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.spotify-content {
+  display: grid;
+  grid-template-columns: 0.8fr 0.8fr 1.4fr;
+  gap: 10px;
+  margin: 22px 0;
+}
+
+.spotify-stat {
+  min-height: 92px;
+  padding: 17px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.spotify-stat small { color: #777972; font-size: 9px; }
+.spotify-stat strong { font-size: 20px; letter-spacing: -0.03em; }
+.spotify-genres strong { font-size: 13px; line-height: 1.5; }
+
+.spotify-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.spotify-footer p { margin: 0; max-width: 760px; color: #6f716a; font-size: 10px; line-height: 1.6; }
+.spotify-footer a { color: #1ed760; font-size: 11px; text-decoration: none; border-bottom: 1px solid rgba(30, 215, 96, 0.4); }
+
+.economics-status {
+  padding: 7px 10px;
+  border-radius: 20px;
+  color: #a7a9a1;
+  border: 1px solid var(--line);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.economics-status.is-positive { color: var(--lime); border-color: rgba(215, 255, 79, 0.24); }
+.economics-status.is-negative { color: #ff9274; border-color: rgba(255, 116, 72, 0.3); }
+
+.economics-layout {
+  display: grid;
+  grid-template-columns: 1.45fr 0.55fr;
+  gap: 28px;
+  margin-top: 24px;
+}
+
+.economics-inputs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.economics-inputs label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  color: #777972;
+  font-size: 9px;
+}
+
+.money-input {
+  height: 47px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.money-input:focus-within { border-color: rgba(215, 255, 79, 0.45); }
+.money-input input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--ink); font-size: 14px; font-weight: 700; }
+.money-input i { color: #666861; font-size: 10px; font-style: normal; }
+
+.economics-summary {
+  padding: 20px;
+  border: 1px solid rgba(215, 255, 79, 0.15);
+  border-radius: 12px;
+  background: rgba(215, 255, 79, 0.035);
+}
+
+.break-even-main { display: flex; flex-direction: column; }
+.break-even-main span, .break-even-main small { color: #777972; font-size: 9px; }
+.break-even-main strong { margin: 5px 0 1px; color: var(--lime); font-size: 28px; letter-spacing: -0.05em; }
+.economics-meta { margin-top: 17px; padding-top: 14px; border-top: 1px solid var(--line); }
+.economics-meta p { margin: 7px 0 0; display: flex; justify-content: space-between; gap: 12px; font-size: 9px; color: #777972; }
+.economics-meta strong { color: var(--ink); font-size: 10px; }
+
+.profit-scenarios {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.profit-scenarios > div {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.profit-scenarios .featured { border-color: rgba(215, 255, 79, 0.16); }
+.profit-scenarios small, .profit-scenarios span { color: #6f716a; font-size: 9px; }
+.profit-scenarios strong { font-size: 19px; letter-spacing: -0.03em; }
+.profit-positive { color: var(--lime); }
+.profit-negative { color: #ff9274; }
 
 footer {
   width: min(1180px, calc(100% - 48px));
@@ -707,6 +850,8 @@ footer {
   .metric-grid { grid-template-columns: 1fr 1fr; }
   .signals { grid-template-columns: 1fr; }
   .range-card { grid-template-columns: 1fr; gap: 15px; }
+  .economics-layout { grid-template-columns: 1fr; }
+  .economics-inputs { grid-template-columns: 1fr 1fr; }
 }
 
 @media (max-width: 520px) {
@@ -720,6 +865,13 @@ footer {
   .metric-grid { grid-template-columns: 1fr; }
   .metric-card { min-height: 135px; }
   .updated { display: none; }
+  .spotify-content, .economics-inputs, .profit-scenarios { grid-template-columns: 1fr; }
+  .spotify-heading,
+  .spotify-footer,
+  .economics-card .card-title {
+    align-items: flex-start;
+    flex-direction: column;
+  }
   footer { gap: 20px; flex-direction: column; }
 }
 

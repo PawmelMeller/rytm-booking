@@ -206,6 +206,100 @@
           </div>
           <p class="disclaimer" id="disclaimer">Artysta i miasto są weryfikowane w zewnętrznych bazach. Frekwencja jest estymacją kierunkową, nie gwarancją sprzedaży.</p>
         </article>
+
+        <article class="spotify-card">
+          <div class="spotify-heading">
+            <div>
+              <span class="card-kicker">Dane katalogowe Spotify</span>
+              <h3 id="spotify-title">Integracja gotowa na klucze API</h3>
+            </div>
+            <span class="spotify-mark" aria-label="Spotify">Spotify</span>
+          </div>
+          <div class="spotify-content" id="spotify-content">
+            <div class="spotify-stat">
+              <small>Obserwujący</small>
+              <strong id="spotify-followers">—</strong>
+            </div>
+            <div class="spotify-stat">
+              <small>Popularność</small>
+              <strong id="spotify-popularity">—</strong>
+            </div>
+            <div class="spotify-stat spotify-genres">
+              <small>Gatunki</small>
+              <strong id="spotify-genres">—</strong>
+            </div>
+          </div>
+          <div class="spotify-footer">
+            <p id="spotify-note">Dodaj sekrety Spotify na serwerze, aby wyświetlić surowe dane katalogowe. Spotify nie wpływa na scoring.</p>
+            <a id="spotify-link" href="#" target="_blank" rel="noopener noreferrer" hidden>Otwórz profil w Spotify</a>
+          </div>
+        </article>
+
+        <article class="economics-card">
+          <div class="card-title">
+            <div>
+              <span class="card-kicker">Kalkulator break-even</span>
+              <h3>Czy ten booking się spina?</h3>
+            </div>
+            <span class="economics-status" id="economics-status">Scenariusz realny</span>
+          </div>
+
+          <div class="economics-layout">
+            <div class="economics-inputs">
+              <label>
+                <span>Koszty stałe</span>
+                <span class="money-input"><input id="fixed-costs" type="number" min="0" step="1000" value="100000"><i>zł</i></span>
+              </label>
+              <label>
+                <span>Cena biletu</span>
+                <span class="money-input"><input id="ticket-price" type="number" min="0" step="1" value="149"><i>zł</i></span>
+              </label>
+              <label>
+                <span>Opłaty biletowe</span>
+                <span class="money-input"><input id="ticket-fees" type="number" min="0" max="100" step="0.5" value="8"><i>%</i></span>
+              </label>
+              <label>
+                <span>Koszt na osobę</span>
+                <span class="money-input"><input id="variable-cost" type="number" min="0" step="1" value="22"><i>zł</i></span>
+              </label>
+              <label>
+                <span>Dodatkowy przychód / osoba</span>
+                <span class="money-input"><input id="ancillary-revenue" type="number" min="0" step="1" value="8"><i>zł</i></span>
+              </label>
+            </div>
+
+            <div class="economics-summary">
+              <div class="break-even-main">
+                <span>Próg rentowności</span>
+                <strong id="break-even-attendance">—</strong>
+                <small>sprzedanych biletów</small>
+              </div>
+              <div class="economics-meta">
+                <p><span>Wpływ netto z biletu</span><strong id="net-ticket-revenue">—</strong></p>
+                <p><span>Marża na uczestniku</span><strong id="contribution-per-head">—</strong></p>
+              </div>
+            </div>
+          </div>
+
+          <div class="profit-scenarios">
+            <div>
+              <small>Ostrożny · P10</small>
+              <strong id="profit-p10">—</strong>
+              <span id="profit-p10-attendance">— osób</span>
+            </div>
+            <div class="featured">
+              <small>Realny · P50</small>
+              <strong id="profit-p50">—</strong>
+              <span id="profit-p50-attendance">— osób</span>
+            </div>
+            <div>
+              <small>Optymistyczny · P90</small>
+              <strong id="profit-p90">—</strong>
+              <span id="profit-p90-attendance">— osób</span>
+            </div>
+          </div>
+          <p class="disclaimer">Kalkulator używa podanych kosztów i modelowych scenariuszy frekwencji. Nie uwzględnia podatków ani indywidualnych zapisów umów.</p>
+        </article>
       </div>
     </section>
   </main>

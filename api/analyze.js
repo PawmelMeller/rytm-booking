@@ -21,6 +21,8 @@ const fetchJson = async (url, options = {}) => {
 
 const wait = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 
+let spotifyTokenCache = null;
+
 const simplify = (value) => value
   .normalize("NFD")
   .replace(/\p{Diacritic}/gu, "")
@@ -83,6 +85,63 @@ const findMarketEvents = async (artist, city) => {
   return { events, liveData: true };
 };
 
+const getSpotifyToken = async () => {
+  if (!process.env.SPOTIFY_CLIENT_ID || !process.env.SPOTIFY_CLIENT_SECRET) return null;
+  if (spotifyTokenCache?.expiresAt > Date.now() + 60000) return spotifyTokenCache.token;
+
+  const credentials = Buffer.from(
+    `${process.env.SPOTIFY_CLIENT_ID}:${process.env.SPOTIFY_CLIENT_SECRET}`
+  ).toString("base64");
+  const response = await fetch("https://accounts.spotify.com/api/token", {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${credentials}`,
+      "Content-Type": "application/x-www-form-urlencoded"
+    },
+    body: "grant_type=client_credentials"
+  });
+  if (!response.ok) throw new Error(`Spotify token returned ${response.status}`);
+
+  const data = await response.json();
+  spotifyTokenCache = {
+    token: data.access_token,
+    expiresAt: Date.now() + Number(data.expires_in || 3600) * 1000
+  };
+  return spotifyTokenCache.token;
+};
+
+const findSpotifyArtist = async (artist) => {
+  const token = await getSpotifyToken();
+  if (!token) return { configured: false, artist: null };
+
+  const params = new URLSearchParams({
+    q: artist.name,
+    type: "artist",
+    limit: "5"
+  });
+  const data = await fetchJson(`https://api.spotify.com/v1/search?${params}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  const candidates = data.artists?.items || [];
+  const match = candidates.find((candidate) =>
+    simplify(candidate.name) === simplify(artist.name)
+  ) || candidates[0];
+
+  if (!match) return { configured: true, artist: null };
+  return {
+    configured: true,
+    artist: {
+      id: match.id,
+      name: match.name,
+      followers: Number(match.followers?.total || 0),
+      popularity: Number(match.popularity || 0),
+      genres: match.genres || [],
+      url: match.external_urls?.spotify || null,
+      image: match.images?.[0]?.url || null
+    }
+  };
+};
+
 export default async function handler(request, response) {
   if (request.method !== "GET") {
     return json(response, 405, { error: "Dozwolona jest tylko metoda GET." });
@@ -100,16 +159,18 @@ export default async function handler(request, response) {
     if (!artist) return json(response, 404, { error: "Nie znaleziono artysty w MusicBrainz." });
     if (!city) return json(response, 404, { error: "Nie znaleziono miasta." });
 
-    const [artistHistory, marketEvents] = await Promise.all([
+    const [artistHistory, marketEvents, spotify] = await Promise.all([
       findArtistHistory(artist),
-      findMarketEvents(artist, city)
+      findMarketEvents(artist, city),
+      findSpotifyArtist(artist)
     ]);
     return json(response, 200, buildAnalysis({
       artist,
       city,
       artistHistory,
       events: marketEvents.events,
-      liveData: marketEvents.liveData
+      liveData: marketEvents.liveData,
+      spotify
     }));
   } catch (error) {
     console.error(error);

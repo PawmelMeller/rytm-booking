@@ -95,3 +95,28 @@ test("filters MusicBrainz search results by the verified artist id", () => {
   assert.equal(history.events[0].name, "Matching Event");
   assert.equal(history.events[0].venue, "Venue One");
 });
+
+test("keeps Spotify catalog data separate from the score", () => {
+  const artist = normalizeArtist({ id: "a", name: "Test Artist", score: 80, tags: [] });
+  const city = normalizeCity({ id: 1, name: "Gdańsk", country_code: "PL", population: 487371 });
+  const withoutSpotify = buildAnalysis({ artist, city });
+  const withSpotify = buildAnalysis({
+    artist,
+    city,
+    spotify: {
+      configured: true,
+      artist: {
+        id: "spotify-id",
+        name: "Test Artist",
+        followers: 1000000,
+        popularity: 90,
+        genres: ["electronic"],
+        url: "https://open.spotify.com/artist/spotify-id"
+      }
+    }
+  });
+
+  assert.equal(withSpotify.score, withoutSpotify.score);
+  assert.equal(withSpotify.spotify.artist.followers, 1000000);
+  assert.ok(withSpotify.sources.some((source) => source.name === "Spotify"));
+});
