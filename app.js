@@ -1,30 +1,46 @@
-import { buildAnalysis, normalizeArtist, normalizeCity } from "./lib/analysis-core.js";
+import {
+  buildAnalysis,
+  normalizeArtist,
+  normalizeArtistHistory,
+  normalizeCity
+} from "./lib/analysis-core.js";
+import { toLocative } from "./lib/polish-cities.js";
+import { createAutocomplete, fetchArtistSuggestions, fetchCitySuggestions } from "./lib/autocomplete.js";
 
 const form = document.querySelector("#search-form");
 const results = document.querySelector("#results");
 const searchSection = document.querySelector("#search-section");
+const skeleton = document.querySelector("#skeleton");
 const newSearchButton = document.querySelector("#new-search");
+const toastContainer = document.querySelector("#toast-container");
 
-const polishCityForm = (city) => {
-  const forms = {
-    "gdańsk": "Gdańsku",
-    "gdansk": "Gdańsku",
-    "warszawa": "Warszawie",
-    "kraków": "Krakowie",
-    "krakow": "Krakowie",
-    "wrocław": "Wrocławiu",
-    "wroclaw": "Wrocławiu",
-    "poznań": "Poznaniu",
-    "poznan": "Poznaniu",
-    "łódź": "Łodzi",
-    "lodz": "Łodzi",
-    "katowice": "Katowicach",
-    "sopot": "Sopocie",
-    "gdynia": "Gdyni"
-  };
+/* ── Toast notifications ── */
 
-  return forms[city.toLocaleLowerCase("pl")] || city;
+const showToast = (message, type = "error") => {
+  const toast = document.createElement("div");
+  toast.className = `toast toast--${type}`;
+  toast.textContent = message;
+  toastContainer.append(toast);
+
+  window.setTimeout(() => {
+    toast.classList.add("leaving");
+    toast.addEventListener("animationend", () => toast.remove());
+  }, 4000);
 };
+
+/* ── Skeleton loading ── */
+
+const showSkeleton = () => {
+  results.hidden = true;
+  skeleton.hidden = false;
+  skeleton.scrollIntoView({ behavior: "smooth", block: "start" });
+};
+
+const hideSkeleton = () => {
+  skeleton.hidden = true;
+};
+
+/* ── Formatting helpers ── */
 
 const formatNumber = (number) => new Intl.NumberFormat("pl-PL").format(number);
 
@@ -37,6 +53,8 @@ const fetchJson = async (url, options) => {
   return response.json();
 };
 
+/* ── Data fetching ── */
+
 const fetchDirectAnalysis = async (artistName, cityName) => {
   const artistQuery = encodeURIComponent(`artist:"${artistName.replaceAll('"', '\\"')}"`);
   const [artistData, cityData] = await Promise.all([
@@ -47,9 +65,17 @@ const fetchDirectAnalysis = async (artistName, cityName) => {
   if (!artistData.artists?.[0]) throw new Error("Nie znaleziono artysty w MusicBrainz.");
   if (!cityData.results?.[0]) throw new Error("Nie znaleziono miasta.");
 
+  const artist = normalizeArtist(artistData.artists[0]);
+  await new Promise((resolve) => window.setTimeout(resolve, 1100));
+  const eventQuery = encodeURIComponent(`artist:"${artist.name.replaceAll('"', '\\"')}"`);
+  const eventData = await fetchJson(
+    `https://musicbrainz.org/ws/2/event?query=${eventQuery}&fmt=json&limit=100`
+  );
+
   return buildAnalysis({
-    artist: normalizeArtist(artistData.artists[0]),
-    city: normalizeCity(cityData.results[0])
+    artist,
+    city: normalizeCity(cityData.results[0]),
+    artistHistory: normalizeArtistHistory(eventData.events, artist.id, eventData.count)
   });
 };
 
@@ -65,6 +91,8 @@ const requestAnalysis = async (artist, city) => {
   return fetchDirectAnalysis(artist, city);
 };
 
+/* ── Render results ── */
+
 const setText = (selector, value) => {
   document.querySelector(selector).textContent = value;
 };
@@ -78,7 +106,7 @@ const showAnalysis = (analysis) => {
   const demand = analysis.score >= 78 ? "Wysoki" : analysis.score >= 65 ? "Dobry" : "Umiarkowany";
 
   setText("#result-artist", artist.name);
-  setText("#result-city", polishCityForm(city.name));
+  setText("#result-city", toLocative(city.name));
   setText("#score", analysis.score);
   setText("#verdict", analysis.verdict);
   setText("#verdict-copy", analysis.verdictCopy);
@@ -87,8 +115,15 @@ const showAnalysis = (analysis) => {
   setText("#demand-change", "model kierunkowy");
   setText("#audience-value", city.population ? formatNumber(city.population) : "Brak danych");
   setText("#audience-copy", analysis.market.locationLabel || "zweryfikowana lokalizacja");
-  setText("#competition-value", competitionLabel);
-  setText("#competition-copy", competitionCount === null ? "dodaj klucz Ticketmaster" : `${competitionCount} wydarzeń muzycznych`);
+  if (competitionCount === null) {
+    setText("#competition-label", "Historia live");
+    setText("#competition-value", formatNumber(analysis.market.documentedArtistEvents || 0));
+    setText("#competition-copy", "potwierdzonych wydarzeń");
+  } else {
+    setText("#competition-label", "Konkurencja");
+    setText("#competition-value", competitionLabel);
+    setText("#competition-copy", `${competitionCount} wydarzeń muzycznych`);
+  }
   setText("#tickets-value", formatNumber(analysis.attendance.p50));
   setText("#p10", formatNumber(analysis.attendance.p10));
   setText("#p50", formatNumber(analysis.attendance.p50));
@@ -116,9 +151,12 @@ const showAnalysis = (analysis) => {
     signalsContainer.append(card);
   });
 
+  hideSkeleton();
   results.hidden = false;
   results.scrollIntoView({ behavior: "smooth", block: "start" });
 };
+
+/* ── Form submission ── */
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -132,6 +170,8 @@ form.addEventListener("submit", async (event) => {
   button.disabled = true;
   button.querySelector("span").textContent = "Analizuję...";
 
+  showSkeleton();
+
   try {
     const analysis = await requestAnalysis(artist, city);
     showAnalysis(analysis);
@@ -140,7 +180,8 @@ form.addEventListener("submit", async (event) => {
     url.searchParams.set("city", city);
     window.history.replaceState({}, "", url);
   } catch (error) {
-    window.alert(error.message || "Nie udało się przeprowadzić analizy.");
+    hideSkeleton();
+    showToast(error.message || "Nie udało się przeprowadzić analizy.", "error");
   } finally {
     button.disabled = false;
     button.innerHTML = originalLabel;
@@ -151,6 +192,19 @@ newSearchButton.addEventListener("click", () => {
   searchSection.scrollIntoView({ behavior: "smooth", block: "start" });
   window.setTimeout(() => document.querySelector("#artist").focus(), 500);
 });
+
+createAutocomplete({
+  input: document.querySelector("#artist"),
+  fetchSuggestions: fetchArtistSuggestions,
+  onSelect: () => document.querySelector("#city").focus()
+});
+
+createAutocomplete({
+  input: document.querySelector("#city"),
+  fetchSuggestions: fetchCitySuggestions
+});
+
+/* ── URL params auto-search ── */
 
 const initialParams = new URLSearchParams(window.location.search);
 const initialArtist = initialParams.get("artist");

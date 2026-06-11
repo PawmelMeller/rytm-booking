@@ -8,7 +8,7 @@ https://rytm-booking.vercel.app
 
 ## Źródła danych
 
-- MusicBrainz: identyfikacja artysty i metadane gatunkowe.
+- MusicBrainz: identyfikacja artysty, metadane gatunkowe i udokumentowana historia wydarzeń.
 - Open-Meteo Geocoding: miasto, region, kraj i populacja.
 - Ticketmaster Discovery: wydarzenia muzyczne, gdy ustawiono `TICKETMASTER_API_KEY`.
 
