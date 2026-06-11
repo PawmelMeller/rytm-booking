@@ -1,3 +1,5 @@
+import { buildAnalysis, normalizeArtist, normalizeCity } from "./lib/analysis-core.js";
+
 const form = document.querySelector("#search-form");
 const results = document.querySelector("#results");
 const searchSection = document.querySelector("#search-section");
@@ -24,91 +26,75 @@ const polishCityForm = (city) => {
   return forms[city.toLocaleLowerCase("pl")] || city;
 };
 
-const createSeed = (artist, city) => {
-  const text = `${artist}:${city}`.toLocaleLowerCase("pl");
-  return [...text].reduce((total, character) => total + character.charCodeAt(0), 0);
-};
-
 const formatNumber = (number) => new Intl.NumberFormat("pl-PL").format(number);
 
-const buildAnalysis = (artist, city) => {
-  const seed = createSeed(artist, city);
-  const score = 61 + (seed % 30);
-  const p50 = 650 + (seed % 13) * 85;
-  const p10 = Math.round(p50 * 0.66 / 10) * 10;
-  const p90 = Math.round(p50 * 1.29 / 10) * 10;
-  const audience = (p50 * (15 + (seed % 7))) / 1000;
-  const competitionCount = 1 + (seed % 5);
-  const growth = 7 + (seed % 19);
-  const competition = competitionCount <= 2 ? "Niska" : competitionCount <= 4 ? "Średnia" : "Wysoka";
-  const demand = score >= 79 ? "Wysoki" : score >= 68 ? "Dobry" : "Umiarkowany";
-  const venueMin = Math.round((p50 * 0.9) / 100) * 100;
-  const venueMax = Math.round((p90 * 0.95) / 100) * 100;
+const fetchJson = async (url, options) => {
+  const response = await fetch(url, options);
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body.error || `Błąd HTTP ${response.status}`);
+  }
+  return response.json();
+};
 
-  let verdict = "Obiecujący kierunek";
-  let verdictCopy = "Rynek wygląda dobrze, ale warto ostrożnie dobrać pojemność venue i termin.";
+const fetchDirectAnalysis = async (artistName, cityName) => {
+  const artistQuery = encodeURIComponent(`artist:"${artistName.replaceAll('"', '\\"')}"`);
+  const [artistData, cityData] = await Promise.all([
+    fetchJson(`https://musicbrainz.org/ws/2/artist/?query=${artistQuery}&fmt=json&limit=5`),
+    fetchJson(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityName)}&count=5&language=pl&format=json`)
+  ]);
 
-  if (score >= 80) {
-    verdict = "Mocny kandydat";
-    verdictCopy = "Lokalny popyt i dynamika artysty wskazują na dobry potencjał wydarzenia.";
-  } else if (score < 69) {
-    verdict = "Wymaga ostrożności";
-    verdictCopy = "Zainteresowanie istnieje, ale rynek może potrzebować mocniejszego wsparcia promocyjnego.";
+  if (!artistData.artists?.[0]) throw new Error("Nie znaleziono artysty w MusicBrainz.");
+  if (!cityData.results?.[0]) throw new Error("Nie znaleziono miasta.");
+
+  return buildAnalysis({
+    artist: normalizeArtist(artistData.artists[0]),
+    city: normalizeCity(cityData.results[0])
+  });
+};
+
+const requestAnalysis = async (artist, city) => {
+  if (!window.location.hostname.endsWith("github.io")) {
+    try {
+      return await fetchJson(`/api/analyze?artist=${encodeURIComponent(artist)}&city=${encodeURIComponent(city)}`);
+    } catch (error) {
+      if (!["localhost", "127.0.0.1"].includes(window.location.hostname)) throw error;
+    }
   }
 
-  return {
-    score,
-    p10,
-    p50,
-    p90,
-    audience,
-    growth,
-    competition,
-    competitionCount,
-    demand,
-    venueMin,
-    venueMax,
-    verdict,
-    verdictCopy,
-    signals: [
-      {
-        title: `Wzrost zainteresowania +${growth}%`,
-        copy: `Wyszukiwania i aktywność wokół artysty rosną w regionie ${city}.`
-      },
-      {
-        title: competitionCount <= 2 ? "Dobre okno w kalendarzu" : "Konkurencyjny kalendarz",
-        copy: `${competitionCount} podobne wydarzenia w analizowanym otoczeniu rynku.`
-      },
-      {
-        title: "Dopasowanie publiczności",
-        copy: `Profil słuchaczy artysty pokrywa się z aktywną publicznością koncertową miasta.`
-      }
-    ]
-  };
+  return fetchDirectAnalysis(artist, city);
 };
 
 const setText = (selector, value) => {
   document.querySelector(selector).textContent = value;
 };
 
-const showAnalysis = (artist, city) => {
-  const analysis = buildAnalysis(artist, city);
+const showAnalysis = (analysis) => {
+  const { artist, city } = analysis;
+  const competitionCount = analysis.market.competitionCount;
+  const competitionLabel = competitionCount === null
+    ? "Brak danych"
+    : competitionCount <= 2 ? "Niska" : competitionCount <= 5 ? "Średnia" : "Wysoka";
+  const demand = analysis.score >= 78 ? "Wysoki" : analysis.score >= 65 ? "Dobry" : "Umiarkowany";
 
-  setText("#result-artist", artist);
-  setText("#result-city", polishCityForm(city));
+  setText("#result-artist", artist.name);
+  setText("#result-city", polishCityForm(city.name));
   setText("#score", analysis.score);
   setText("#verdict", analysis.verdict);
   setText("#verdict-copy", analysis.verdictCopy);
-  setText("#recommendation", `Rozważ venue na ${formatNumber(analysis.venueMin)}–${formatNumber(analysis.venueMax)} osób`);
-  setText("#demand-value", analysis.demand);
-  setText("#demand-change", `+${analysis.growth}% w 90 dni`);
-  setText("#audience-value", `${analysis.audience.toFixed(1).replace(".", ",")} tys.`);
-  setText("#competition-value", analysis.competition);
-  setText("#competition-copy", `${analysis.competitionCount} podobne wydarzenia`);
-  setText("#tickets-value", formatNumber(analysis.p50));
-  setText("#p10", formatNumber(analysis.p10));
-  setText("#p50", formatNumber(analysis.p50));
-  setText("#p90", formatNumber(analysis.p90));
+  setText("#recommendation", analysis.recommendation.replace(/\d+/g, (value) => formatNumber(Number(value))));
+  setText("#demand-value", demand);
+  setText("#demand-change", "model kierunkowy");
+  setText("#audience-value", city.population ? formatNumber(city.population) : "Brak danych");
+  setText("#audience-copy", analysis.market.locationLabel || "zweryfikowana lokalizacja");
+  setText("#competition-value", competitionLabel);
+  setText("#competition-copy", competitionCount === null ? "dodaj klucz Ticketmaster" : `${competitionCount} wydarzeń muzycznych`);
+  setText("#tickets-value", formatNumber(analysis.attendance.p50));
+  setText("#p10", formatNumber(analysis.attendance.p10));
+  setText("#p50", formatNumber(analysis.attendance.p50));
+  setText("#p90", formatNumber(analysis.attendance.p90));
+  setText("#coverage", analysis.coverage === "live" ? "Dane live" : "Dane częściowe");
+  setText("#updated", `Źródła: ${analysis.sources.map((source) => source.name).join(", ")}`);
 
   document.querySelector(".score-ring").style.setProperty("--score", analysis.score);
   const signalsContainer = document.querySelector("#signals");
@@ -134,7 +120,7 @@ const showAnalysis = (artist, city) => {
   results.scrollIntoView({ behavior: "smooth", block: "start" });
 };
 
-form.addEventListener("submit", (event) => {
+form.addEventListener("submit", async (event) => {
   event.preventDefault();
   const artist = document.querySelector("#artist").value.trim();
   const city = document.querySelector("#city").value.trim();
@@ -146,14 +132,32 @@ form.addEventListener("submit", (event) => {
   button.disabled = true;
   button.querySelector("span").textContent = "Analizuję...";
 
-  window.setTimeout(() => {
-    showAnalysis(artist, city);
+  try {
+    const analysis = await requestAnalysis(artist, city);
+    showAnalysis(analysis);
+    const url = new URL(window.location.href);
+    url.searchParams.set("artist", artist);
+    url.searchParams.set("city", city);
+    window.history.replaceState({}, "", url);
+  } catch (error) {
+    window.alert(error.message || "Nie udało się przeprowadzić analizy.");
+  } finally {
     button.disabled = false;
     button.innerHTML = originalLabel;
-  }, 450);
+  }
 });
 
 newSearchButton.addEventListener("click", () => {
   searchSection.scrollIntoView({ behavior: "smooth", block: "start" });
   window.setTimeout(() => document.querySelector("#artist").focus(), 500);
 });
+
+const initialParams = new URLSearchParams(window.location.search);
+const initialArtist = initialParams.get("artist");
+const initialCity = initialParams.get("city");
+
+if (initialArtist && initialCity) {
+  document.querySelector("#artist").value = initialArtist;
+  document.querySelector("#city").value = initialCity;
+  form.requestSubmit();
+}

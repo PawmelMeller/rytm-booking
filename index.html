@@ -86,7 +86,7 @@
         <article class="score-card">
           <div class="score-top">
             <span class="card-kicker">Potencjał rynku</span>
-            <span class="confidence">Wysoka pewność</span>
+            <span class="confidence" id="coverage">Dane częściowe</span>
           </div>
           <div class="score-main">
             <div class="score-ring" style="--score: 82">
@@ -111,14 +111,14 @@
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18V9m5 9V5m6 13v-7m5 7V3"></path></svg>
             </span>
             <div><span>Lokalny popyt</span><strong id="demand-value">Wysoki</strong></div>
-            <small id="demand-change">+18% w 90 dni</small>
+            <small id="demand-change">model kierunkowy</small>
           </article>
           <article class="metric-card">
             <span class="metric-icon audience">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm10 10v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
             </span>
-            <div><span>Aktywna publiczność</span><strong id="audience-value">24,8 tys.</strong></div>
-            <small>miasto + 45 min dojazdu</small>
+            <div><span>Wielkość miasta</span><strong id="audience-value">486 tys.</strong></div>
+            <small id="audience-copy">zweryfikowana lokalizacja</small>
           </article>
           <article class="metric-card">
             <span class="metric-icon competition">
@@ -132,7 +132,7 @@
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8a2 2 0 0 0 2-2h14a2 2 0 0 0 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 0-2 2H5a2 2 0 0 0-2-2v-2a2 2 0 0 0 0-4V8Z"></path><path d="M13 6v12"></path></svg>
             </span>
             <div><span>Potencjał sprzedaży</span><strong id="tickets-value">1 340</strong></div>
-            <small>estymowana mediana</small>
+            <small>modelowa estymacja</small>
           </article>
         </div>
 
@@ -142,7 +142,7 @@
               <span class="card-kicker">Najważniejsze sygnały</span>
               <h3>Co wpływa na wynik?</h3>
             </div>
-            <span class="updated">Aktualizacja: dzisiaj</span>
+            <span class="updated" id="updated">Źródła: MusicBrainz, Open-Meteo</span>
           </div>
           <div class="signals" id="signals"></div>
         </article>
@@ -165,7 +165,7 @@
               <span><small>Optymistyczny</small><strong id="p90">1 720</strong></span>
             </div>
           </div>
-          <p class="disclaimer">Estymacja kierunkowa na podstawie danych rynkowych. Wynik nie stanowi gwarancji sprzedaży.</p>
+          <p class="disclaimer" id="disclaimer">Artysta i miasto są weryfikowane w zewnętrznych bazach. Frekwencja jest estymacją kierunkową, nie gwarancją sprzedaży.</p>
         </article>
       </div>
     </section>
@@ -176,6 +176,6 @@
     <span>Prościej oceniać. Lepiej bookować.</span>
   </footer>
 
-  <script src="app.js"></script>
+  <script type="module" src="app.js"></script>
 </body>
 </html>
