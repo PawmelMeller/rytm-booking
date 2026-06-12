@@ -5,6 +5,6 @@
   "type": "module",
   "scripts": {
     "test": "node --test",
-    "check": "node --check app.js && node --check api/analyze.js && node --check lib/autocomplete.js && node --check lib/analysis-core.js && node --check lib/economics.js && node --check lib/scenario-state.js"
+    "check": "node --check app.js && node --check api/analyze.js && node --check lib/autocomplete.js && node --check lib/analysis-core.js && node --check lib/economics.js && node --check lib/scenario-state.js && node --check lib/history-import.js"
   }
 }

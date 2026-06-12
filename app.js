@@ -9,6 +9,12 @@ import {
   readEconomicsFromParams,
   writeEconomicsToParams
 } from "./lib/scenario-state.js";
+import {
+  findAnalogues,
+  HISTORY_TEMPLATE_HEADERS,
+  normalizeHistoryRows,
+  summarizeHistory
+} from "./lib/history-import.js";
 import { toLocative } from "./lib/polish-cities.js";
 import { createAutocomplete, fetchArtistSuggestions, fetchCitySuggestions } from "./lib/autocomplete.js";
 
@@ -19,6 +25,9 @@ const skeleton = document.querySelector("#skeleton");
 const newSearchButton = document.querySelector("#new-search");
 const shareAnalysisButton = document.querySelector("#share-analysis");
 const toastContainer = document.querySelector("#toast-container");
+const historyFileInput = document.querySelector("#history-file");
+const historyClearButton = document.querySelector("#history-clear");
+const historyTemplateButton = document.querySelector("#history-template");
 const economicsInputs = {
   fixedCosts: document.querySelector("#fixed-costs"),
   ticketPrice: document.querySelector("#ticket-price"),
@@ -28,6 +37,11 @@ const economicsInputs = {
 };
 let currentAnalysis = null;
 let urlUpdateTimer = null;
+let historyRecords = [];
+let historyFileName = null;
+const HISTORY_STORAGE_KEY = "rytm.promoterHistory.v1";
+const HISTORY_FILE_SIZE_LIMIT = 10 * 1024 * 1024;
+const HISTORY_PARSE_ROW_LIMIT = 5000;
 
 /* ── Toast notifications ── */
 
@@ -63,6 +77,7 @@ const formatCurrency = (number) => new Intl.NumberFormat("pl-PL", {
   currency: "PLN",
   maximumFractionDigits: 0
 }).format(number);
+const formatPercent = (number) => `${Math.round(number * 100)}%`;
 
 const setProfit = (selector, value) => {
   const element = document.querySelector(selector);
@@ -94,6 +109,29 @@ const fetchJson = async (url, options) => {
     throw new Error(body.error || `Błąd HTTP ${response.status}`);
   }
   return response.json();
+};
+
+const saveHistory = () => {
+  try {
+    localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify({
+      fileName: historyFileName,
+      records: historyRecords.slice(0, 2000)
+    }));
+  } catch {
+    showToast("Nie udało się zapisać historii w przeglądarce.", "error");
+  }
+};
+
+const restoreHistory = () => {
+  try {
+    const saved = JSON.parse(localStorage.getItem(HISTORY_STORAGE_KEY) || "null");
+    if (Array.isArray(saved?.records)) {
+      historyRecords = saved.records;
+      historyFileName = saved.fileName || "Zapisana historia";
+    }
+  } catch {
+    localStorage.removeItem(HISTORY_STORAGE_KEY);
+  }
 };
 
 /* ── Data fetching ── */
@@ -196,6 +234,94 @@ const renderEconomics = () => {
   scheduleScenarioUrlUpdate();
 };
 
+const renderHistory = () => {
+  const empty = document.querySelector("#history-empty");
+  const resultsElement = document.querySelector("#history-results");
+  const hasHistory = historyRecords.length > 0;
+  empty.hidden = hasHistory;
+  resultsElement.hidden = !hasHistory;
+  historyClearButton.hidden = !hasHistory;
+  if (!hasHistory) return;
+
+  const summary = summarizeHistory(historyRecords);
+  setText("#history-count", formatNumber(summary.count));
+  setText("#history-attendance", summary.averageAttendance === null
+    ? "—"
+    : formatNumber(Math.round(summary.averageAttendance)));
+  setText("#history-profit", summary.averageProfit === null
+    ? "—"
+    : formatCurrency(summary.averageProfit));
+  setText("#history-profitable", summary.profitableShare === null
+    ? "—"
+    : formatPercent(summary.profitableShare));
+  setText("#history-file-name", historyFileName || "Historia promotera");
+  setText("#history-date-range", summary.dateFrom && summary.dateTo
+    ? `${summary.dateFrom} – ${summary.dateTo}`
+    : "Brak kompletnych dat");
+
+  const analogues = currentAnalysis
+    ? findAnalogues(historyRecords, currentAnalysis.artist.name, currentAnalysis.city.name)
+    : [];
+  setText("#analogues-title", currentAnalysis
+    ? `${currentAnalysis.artist.name} / ${currentAnalysis.city.name}`
+    : "Uruchom analizę artysty i miasta");
+
+  const analoguesContainer = document.querySelector("#analogues-list");
+  analoguesContainer.replaceChildren();
+
+  if (!analogues.length) {
+    const emptyAnalogue = document.createElement("p");
+    emptyAnalogue.className = "analogues-empty";
+    emptyAnalogue.textContent = "Brak wydarzeń z tym artystą lub miastem w zaimportowanej historii.";
+    analoguesContainer.append(emptyAnalogue);
+    setText("#history-benchmark", "Brak analogów");
+    return;
+  }
+
+  const benchmark = Math.round(
+    analogues.reduce((sum, record) => sum + record.ticketsSold, 0) / analogues.length
+  );
+  setText("#history-benchmark", `Benchmark: ${formatNumber(benchmark)} biletów`);
+
+  analogues.forEach((record) => {
+    const item = document.createElement("div");
+    item.className = "analogue-item";
+    const identity = document.createElement("div");
+    const title = document.createElement("strong");
+    const meta = document.createElement("span");
+    const metrics = document.createElement("div");
+    const attendance = document.createElement("strong");
+    const profit = document.createElement("span");
+
+    title.textContent = `${record.artist} · ${record.city}`;
+    meta.textContent = [record.date, record.venue].filter(Boolean).join(" · ") || "Brak daty i venue";
+    attendance.textContent = `${formatNumber(record.ticketsSold)} biletów`;
+    profit.textContent = Number.isFinite(record.profit) ? formatCurrency(record.profit) : "Brak wyniku";
+    profit.className = Number.isFinite(record.profit) && record.profit < 0 ? "analogue-loss" : "";
+
+    identity.append(title, meta);
+    metrics.append(attendance, profit);
+    item.append(identity, metrics);
+    analoguesContainer.append(item);
+  });
+};
+
+const parseHistoryFile = async (file) => {
+  if (!window.XLSX) throw new Error("Moduł arkuszy nie został załadowany.");
+  if (file.size > HISTORY_FILE_SIZE_LIMIT) {
+    throw new Error("Plik jest za duży. Maksymalny rozmiar to 10 MB.");
+  }
+  const data = await file.arrayBuffer();
+  const workbook = window.XLSX.read(data, { type: "array", cellDates: true });
+  const sheetName = workbook.SheetNames[0];
+  if (!sheetName) throw new Error("Plik nie zawiera arkusza.");
+  const rows = window.XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {
+    defval: "",
+    raw: true
+  });
+  return normalizeHistoryRows(rows.slice(0, HISTORY_PARSE_ROW_LIMIT));
+};
+
 const showAnalysis = (analysis) => {
   currentAnalysis = analysis;
   const { artist, city } = analysis;
@@ -231,6 +357,7 @@ const showAnalysis = (analysis) => {
   setText("#coverage", analysis.coverage === "live" ? "Dane live" : "Dane częściowe");
   setText("#updated", `Źródła: ${analysis.sources.map((source) => source.name).join(", ")}`);
   renderSpotify(analysis.spotify);
+  renderHistory();
 
   document.querySelector(".score-ring").style.setProperty("--score", analysis.score);
   const signalsContainer = document.querySelector("#signals");
@@ -307,6 +434,53 @@ shareAnalysisButton.addEventListener("click", async () => {
   }
 });
 
+historyFileInput.addEventListener("change", async () => {
+  const file = historyFileInput.files?.[0];
+  if (!file) return;
+
+  try {
+    const imported = await parseHistoryFile(file);
+    if (!imported.records.length) {
+      throw new Error("Nie znaleziono poprawnych wierszy. Wymagane są: artysta, miasto i sprzedane bilety.");
+    }
+    historyRecords = imported.records.slice(0, 2000);
+    historyFileName = file.name;
+    saveHistory();
+    renderHistory();
+    const rejectedNote = imported.rejected ? ` Odrzucono: ${imported.rejected}.` : "";
+    showToast(`Zaimportowano ${historyRecords.length} wydarzeń.${rejectedNote}`, "success");
+  } catch (error) {
+    showToast(error.message || "Nie udało się odczytać pliku.", "error");
+  } finally {
+    historyFileInput.value = "";
+  }
+});
+
+historyClearButton.addEventListener("click", () => {
+  historyRecords = [];
+  historyFileName = null;
+  localStorage.removeItem(HISTORY_STORAGE_KEY);
+  renderHistory();
+  showToast("Historia została usunięta z tej przeglądarki.", "success");
+});
+
+historyTemplateButton.addEventListener("click", () => {
+  const example = [
+    HISTORY_TEMPLATE_HEADERS,
+    ["Przykładowy artysta", "Gdańsk", "2025-05-15", "Klub", 1200, 950, 129, 122550, 85000, 12000, 25550]
+  ];
+  const csv = example
+    .map((row) => row.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(";"))
+    .join("\r\n");
+  const blob = new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "rytm-szablon-historii.csv";
+  link.click();
+  URL.revokeObjectURL(url);
+});
+
 createAutocomplete({
   input: document.querySelector("#artist"),
   fetchSuggestions: fetchArtistSuggestions,
@@ -328,6 +502,9 @@ const initialParams = new URLSearchParams(window.location.search);
 const initialArtist = initialParams.get("artist");
 const initialCity = initialParams.get("city");
 const initialEconomics = readEconomicsFromParams(initialParams);
+
+restoreHistory();
+renderHistory();
 
 for (const [field, value] of Object.entries(initialEconomics)) {
   economicsInputs[field].value = value;

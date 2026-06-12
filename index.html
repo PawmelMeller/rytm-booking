@@ -303,6 +303,55 @@
           </div>
           <p class="disclaimer">Kalkulator używa podanych kosztów i modelowych scenariuszy frekwencji. Nie uwzględnia podatków ani indywidualnych zapisów umów.</p>
         </article>
+
+        <article class="history-card">
+          <div class="card-title">
+            <div>
+              <span class="card-kicker">Dane promotera</span>
+              <h3>Import historii wydarzeń</h3>
+            </div>
+            <span class="history-privacy">Plik zostaje na urządzeniu</span>
+          </div>
+
+          <div class="history-import-row">
+            <label class="history-upload" for="history-file">
+              <input id="history-file" type="file" accept=".csv,.tsv,.xlsx,.xls" hidden>
+              <strong>Wybierz CSV lub XLSX</strong>
+              <span>Artysta, miasto i sprzedane bilety są wymagane</span>
+            </label>
+            <div class="history-actions">
+              <button id="history-template" type="button">Pobierz szablon CSV</button>
+              <button id="history-clear" type="button" hidden>Wyczyść dane</button>
+            </div>
+          </div>
+
+          <div class="history-empty" id="history-empty">
+            Zaimportuj historię, aby zobaczyć średnią frekwencję, rentowność i podobne wydarzenia.
+          </div>
+
+          <div class="history-results" id="history-results" hidden>
+            <div class="history-kpis">
+              <div><small>Poprawne wydarzenia</small><strong id="history-count">0</strong></div>
+              <div><small>Średnia frekwencja</small><strong id="history-attendance">—</strong></div>
+              <div><small>Średni zysk</small><strong id="history-profit">—</strong></div>
+              <div><small>Rentowne wydarzenia</small><strong id="history-profitable">—</strong></div>
+            </div>
+            <div class="history-meta">
+              <span id="history-file-name">Historia promotera</span>
+              <span id="history-date-range">Brak dat</span>
+            </div>
+            <div class="analogues-heading">
+              <div>
+                <span class="card-kicker">Najbliższe analogi</span>
+                <h4 id="analogues-title">Dla bieżącej analizy</h4>
+              </div>
+              <strong id="history-benchmark">—</strong>
+            </div>
+            <div class="analogues-list" id="analogues-list"></div>
+          </div>
+
+          <p class="disclaimer">Dane są przetwarzane lokalnie i zapisywane w pamięci tej przeglądarki. Import nie wysyła pliku na serwer.</p>
+        </article>
       </div>
     </section>
   </main>
@@ -314,6 +363,7 @@
 
   <div id="toast-container"></div>
 
+  <script src="vendor/xlsx.full.min.js"></script>
   <script type="module" src="app.js"></script>
 </body>
 </html>

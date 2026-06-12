@@ -327,7 +327,7 @@ h1 em {
   gap: 14px;
 }
 
-.score-card, .signal-card, .range-card, .spotify-card, .economics-card {
+.score-card, .signal-card, .range-card, .spotify-card, .economics-card, .history-card {
   border: 1px solid var(--line);
   background: linear-gradient(145deg, rgba(30, 32, 29, 0.98), rgba(21, 23, 20, 0.98));
   border-radius: 16px;
@@ -527,7 +527,8 @@ h1 em {
 }
 
 .spotify-card,
-.economics-card {
+.economics-card,
+.history-card {
   grid-column: 1 / -1;
   padding: 28px;
 }
@@ -668,6 +669,129 @@ h1 em {
 .profit-scenarios strong { font-size: 19px; letter-spacing: -0.03em; }
 .profit-positive { color: var(--lime); }
 .profit-negative { color: #ff9274; }
+
+.history-privacy {
+  padding: 7px 10px;
+  border: 1px solid rgba(100, 168, 255, 0.24);
+  border-radius: 20px;
+  color: var(--blue);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.history-import-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 16px;
+  margin-top: 22px;
+}
+
+.history-upload {
+  min-height: 92px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  border: 1px dashed rgba(215, 255, 79, 0.28);
+  border-radius: 12px;
+  background: rgba(215, 255, 79, 0.025);
+  cursor: pointer;
+}
+
+.history-upload:hover { background: rgba(215, 255, 79, 0.055); }
+.history-upload strong { color: var(--lime); font-size: 13px; }
+.history-upload span { color: #72746d; font-size: 10px; }
+
+.history-actions {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+}
+
+.history-actions button {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  color: #a7a9a1;
+  font-size: 10px;
+}
+
+.history-actions button:hover { border-color: rgba(215, 255, 79, 0.25); color: var(--ink); }
+
+.history-empty {
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 9px;
+  color: #666861;
+  font-size: 10px;
+}
+
+.history-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.history-kpis > div {
+  min-height: 82px;
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.history-kpis small { color: #70726b; font-size: 9px; }
+.history-kpis strong { font-size: 17px; }
+
+.history-meta {
+  margin: 12px 0 20px;
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  color: #5e6059;
+  font-family: "DM Mono", monospace;
+  font-size: 8px;
+}
+
+.analogues-heading {
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.analogues-heading h4 { margin: 5px 0 0; font-size: 16px; }
+.analogues-heading > strong { color: var(--lime); font-size: 11px; }
+.analogues-list { margin-top: 12px; display: grid; gap: 8px; }
+
+.analogue-item {
+  padding: 13px 15px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.analogue-item > div { display: flex; flex-direction: column; gap: 3px; }
+.analogue-item > div:last-child { text-align: right; }
+.analogue-item strong { font-size: 11px; }
+.analogue-item span, .analogues-empty { color: #686a63; font-size: 9px; }
+.analogue-loss { color: #ff9274 !important; }
+.analogues-empty { margin: 0; padding: 14px; }
 
 footer {
   width: min(1180px, calc(100% - 48px));
@@ -870,6 +994,8 @@ footer {
   .range-card { grid-template-columns: 1fr; gap: 15px; }
   .economics-layout { grid-template-columns: 1fr; }
   .economics-inputs { grid-template-columns: 1fr 1fr; }
+  .history-import-row { grid-template-columns: 1fr; }
+  .history-actions { flex-direction: row; justify-content: flex-start; }
 }
 
 @media (max-width: 520px) {
@@ -885,6 +1011,9 @@ footer {
   .metric-card { min-height: 135px; }
   .updated { display: none; }
   .spotify-content, .economics-inputs, .profit-scenarios { grid-template-columns: 1fr; }
+  .history-kpis { grid-template-columns: 1fr 1fr; }
+  .history-meta, .analogues-heading, .analogue-item { align-items: flex-start; flex-direction: column; }
+  .analogue-item > div:last-child { text-align: left; }
   .spotify-heading,
   .spotify-footer,
   .economics-card .card-title {

@@ -34,6 +34,16 @@ Raport zawiera interaktywny kalkulator:
 Parametry kalkulatora są zapisywane w adresie URL. Przycisk `Kopiuj analizę`
 tworzy odtwarzalny link zawierający artystę, miasto i założenia finansowe.
 
+## Import historii promotera
+
+Raport przyjmuje pliki CSV, TSV, XLSX i XLS. Import:
+
+- automatycznie mapuje popularne polskie i angielskie nazwy kolumn,
+- wymaga artysty, miasta i liczby sprzedanych biletów,
+- oblicza podsumowanie frekwencji i rentowności,
+- wskazuje analogiczne wydarzenia dla bieżącego artysty lub miasta,
+- działa lokalnie w przeglądarce i nie wysyła pliku na serwer.
+
 ## Sekrety
 
 Sekrety należy ustawić wyłącznie po stronie hostingu. Ich nazwy znajdują się
