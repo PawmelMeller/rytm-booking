@@ -195,10 +195,14 @@ const renderSpotify = (spotify) => {
   }
 
   setText("#spotify-title", spotify.artist.name);
-  setText("#spotify-followers", formatNumber(spotify.artist.followers));
-  setText("#spotify-popularity", `${spotify.artist.popularity}/100`);
+  setText("#spotify-followers", Number.isFinite(spotify.artist.followers)
+    ? formatNumber(spotify.artist.followers)
+    : "Niedostępne");
+  setText("#spotify-popularity", Number.isFinite(spotify.artist.popularity)
+    ? `${spotify.artist.popularity}/100`
+    : "Niedostępne");
   setText("#spotify-genres", spotify.artist.genres.slice(0, 4).join(", ") || "Brak danych");
-  setText("#spotify-note", "Surowe pola katalogowe Spotify. Popularność i obserwujący są przez Spotify oznaczone jako pola deprecated i nie wpływają na model.");
+  setText("#spotify-note", "Profil pochodzi ze Spotify. Od lutego 2026 Spotify nie udostępnia w Development Mode pól obserwujących i popularności; nie wpływają one na scoring.");
   link.href = spotify.artist.url;
   link.hidden = !spotify.artist.url;
 };

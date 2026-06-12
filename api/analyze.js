@@ -133,8 +133,8 @@ const findSpotifyArtist = async (artist) => {
     artist: {
       id: match.id,
       name: match.name,
-      followers: Number(match.followers?.total || 0),
-      popularity: Number(match.popularity || 0),
+      followers: Number.isFinite(match.followers?.total) ? match.followers.total : null,
+      popularity: Number.isFinite(match.popularity) ? match.popularity : null,
       genres: match.genres || [],
       url: match.external_urls?.spotify || null,
       image: match.images?.[0]?.url || null
