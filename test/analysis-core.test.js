@@ -96,7 +96,7 @@ test("filters MusicBrainz search results by the verified artist id", () => {
   assert.equal(history.events[0].venue, "Venue One");
 });
 
-test("keeps Spotify catalog data separate from the score", () => {
+test("factors Spotify catalog data into the score and attendance", () => {
   const artist = normalizeArtist({ id: "a", name: "Test Artist", score: 80, tags: [] });
   const city = normalizeCity({ id: 1, name: "Gdańsk", country_code: "PL", population: 487371 });
   const withoutSpotify = buildAnalysis({ artist, city });
@@ -116,7 +116,8 @@ test("keeps Spotify catalog data separate from the score", () => {
     }
   });
 
-  assert.equal(withSpotify.score, withoutSpotify.score);
+  assert.notEqual(withSpotify.score, withoutSpotify.score);
+  assert.ok(withSpotify.attendance.p50 > withoutSpotify.attendance.p50);
   assert.equal(withSpotify.spotify.artist.followers, 1000000);
   assert.ok(withSpotify.sources.some((source) => source.name === "Spotify"));
 });

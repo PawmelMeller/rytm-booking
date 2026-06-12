@@ -4,7 +4,7 @@ import {
   normalizeArtistHistory,
   normalizeCity
 } from "./lib/analysis-core.js";
-import { calculateBreakEven } from "./lib/economics.js";
+import { calculateFinancialProjection } from "./lib/financial.js";
 import {
   readEconomicsFromParams,
   writeEconomicsToParams
@@ -29,6 +29,8 @@ const historyFileInput = document.querySelector("#history-file");
 const historyClearButton = document.querySelector("#history-clear");
 const historyTemplateButton = document.querySelector("#history-template");
 const economicsInputs = {
+  venueCost: document.querySelector("#venue-cost"),
+  artistFee: document.querySelector("#artist-fee"),
   fixedCosts: document.querySelector("#fixed-costs"),
   ticketPrice: document.querySelector("#ticket-price"),
   ticketFeesPercent: document.querySelector("#ticket-fees"),
@@ -180,37 +182,52 @@ const setText = (selector, value) => {
 
 const renderSpotify = (spotify) => {
   const link = document.querySelector("#spotify-link");
+  const followersInput = document.querySelector("#spotify-followers-input");
+  const popularityInput = document.querySelector("#spotify-popularity-input");
+  const popularityLabel = document.querySelector("#spotify-popularity-label");
+
   if (!spotify?.artist) {
     setText("#spotify-title", spotify?.configured
       ? "Nie znaleziono zgodnego profilu"
       : "Integracja gotowa na klucze API");
-    setText("#spotify-followers", "—");
-    setText("#spotify-popularity", "—");
+    
+    if (document.activeElement !== followersInput) followersInput.value = "";
+    if (document.activeElement !== popularityInput) {
+      popularityInput.value = 50;
+      popularityLabel.textContent = "50/100";
+    }
+    
     setText("#spotify-genres", "—");
     setText("#spotify-note", spotify?.configured
       ? "Spotify jest połączone, ale wyszukiwanie nie zwróciło pewnego dopasowania."
-      : "Dodaj SPOTIFY_CLIENT_ID i SPOTIFY_CLIENT_SECRET na serwerze. Spotify nie wpływa na scoring.");
+      : "Dodaj SPOTIFY_CLIENT_ID i SPOTIFY_CLIENT_SECRET na serwerze. Wpisz wartości wyżej, aby symulować popularność i obserwujących.");
     link.hidden = true;
     return;
   }
 
   setText("#spotify-title", spotify.artist.name);
-  setText("#spotify-followers", Number.isFinite(spotify.artist.followers)
-    ? formatNumber(spotify.artist.followers)
-    : "Niedostępne");
-  setText("#spotify-popularity", Number.isFinite(spotify.artist.popularity)
-    ? `${spotify.artist.popularity}/100`
-    : "Niedostępne");
+  
+  if (document.activeElement !== followersInput) {
+    followersInput.value = Number.isFinite(spotify.artist.followers) ? spotify.artist.followers : "";
+  }
+  if (document.activeElement !== popularityInput) {
+    const popularity = Number.isFinite(spotify.artist.popularity) ? spotify.artist.popularity : 50;
+    popularityInput.value = popularity;
+    popularityLabel.textContent = `${popularity}/100`;
+  }
+
   setText("#spotify-genres", spotify.artist.genres.slice(0, 4).join(", ") || "Brak danych");
-  setText("#spotify-note", "Profil pochodzi ze Spotify. Od lutego 2026 Spotify nie udostępnia w Development Mode pól obserwujących i popularności; nie wpływają one na scoring.");
+  setText("#spotify-note", "Od lutego 2026 r. Spotify w Development Mode nie udostępnia pól obserwujących i popularności. Wpisz je ręcznie powyżej, aby symulować wpływ na scoring i frekwencję.");
   link.href = spotify.artist.url;
   link.hidden = !spotify.artist.url;
 };
 
 const renderEconomics = () => {
   if (!currentAnalysis) return;
-  const result = calculateBreakEven({
+  const result = calculateFinancialProjection({
     fixedCosts: economicsInputs.fixedCosts.value,
+    venueCost: economicsInputs.venueCost.value,
+    artistFee: economicsInputs.artistFee.value,
     ticketPrice: economicsInputs.ticketPrice.value,
     ticketFeesPercent: economicsInputs.ticketFeesPercent.value,
     variableCostPerAttendee: economicsInputs.variableCostPerAttendee.value,
@@ -228,6 +245,23 @@ const renderEconomics = () => {
     const scenario = result.scenarios[key];
     setProfit(`#profit-${key}`, scenario.profit);
     setText(`#profit-${key}-attendance`, `${formatNumber(scenario.attendance)} osób`);
+    
+    // Update detailed table row cells
+    setText(`#table-attendance-${key}`, formatNumber(scenario.attendance));
+    setText(`#table-ticket-${key}`, formatCurrency(scenario.ticketRevenue));
+    setText(`#table-ancillary-${key}`, formatCurrency(scenario.ancillaryRevenue));
+    setText(`#table-rev-${key}`, formatCurrency(scenario.totalRevenue));
+    setText(`#table-fixed-${key}`, formatCurrency(scenario.fixedCosts));
+    setText(`#table-var-${key}`, formatCurrency(scenario.variableCosts));
+    setText(`#table-costs-${key}`, formatCurrency(scenario.totalCosts));
+    
+    const profitEl = document.querySelector(`#table-profit-${key}`);
+    profitEl.textContent = formatCurrency(scenario.profit);
+    profitEl.className = scenario.profit >= 0 ? "profit-positive" : "profit-negative";
+    
+    const roiEl = document.querySelector(`#table-roi-${key}`);
+    roiEl.textContent = `${scenario.roi > 0 ? "+" : ""}${scenario.roi}%`;
+    roiEl.className = `roi-value ${scenario.roi >= 0 ? "profit-positive" : "profit-negative"}`;
   }
 
   const realProfit = result.scenarios.p50.profit;
@@ -498,6 +532,49 @@ Object.values(economicsInputs).forEach((input) => {
 createAutocomplete({
   input: document.querySelector("#city"),
   fetchSuggestions: fetchCitySuggestions
+});
+
+const recalculateAndShow = () => {
+  if (!currentAnalysis) return;
+  const updated = buildAnalysis({
+    artist: currentAnalysis.artist,
+    city: currentAnalysis.city,
+    artistHistory: currentAnalysis.artistHistory || { events: [], documentedCount: 0 },
+    events: currentAnalysis.events || [],
+    liveData: currentAnalysis.coverage === "live",
+    spotify: currentAnalysis.spotify
+  });
+  showAnalysis(updated);
+};
+
+const spotifyFollowersInput = document.querySelector("#spotify-followers-input");
+const spotifyPopularityInput = document.querySelector("#spotify-popularity-input");
+const spotifyPopularityLabel = document.querySelector("#spotify-popularity-label");
+
+spotifyFollowersInput.addEventListener("input", () => {
+  if (!currentAnalysis) return;
+  if (!currentAnalysis.spotify) {
+    currentAnalysis.spotify = { configured: true, artist: {} };
+  }
+  if (!currentAnalysis.spotify.artist) {
+    currentAnalysis.spotify.artist = {};
+  }
+  currentAnalysis.spotify.artist.followers = Number(spotifyFollowersInput.value) || 0;
+  recalculateAndShow();
+});
+
+spotifyPopularityInput.addEventListener("input", () => {
+  if (!currentAnalysis) return;
+  if (!currentAnalysis.spotify) {
+    currentAnalysis.spotify = { configured: true, artist: {} };
+  }
+  if (!currentAnalysis.spotify.artist) {
+    currentAnalysis.spotify.artist = {};
+  }
+  const popularity = Number(spotifyPopularityInput.value);
+  currentAnalysis.spotify.artist.popularity = popularity;
+  spotifyPopularityLabel.textContent = `${popularity}/100`;
+  recalculateAndShow();
 });
 
 /* ── URL params auto-search ── */

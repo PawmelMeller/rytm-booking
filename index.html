@@ -221,11 +221,14 @@
           <div class="spotify-content" id="spotify-content">
             <div class="spotify-stat">
               <small>Obserwujący</small>
-              <strong id="spotify-followers">—</strong>
+              <input type="number" id="spotify-followers-input" class="spotify-input" value="0" min="0" step="1000" placeholder="Wpisz ręcznie...">
             </div>
             <div class="spotify-stat">
               <small>Popularność</small>
-              <strong id="spotify-popularity">—</strong>
+              <div class="spotify-popularity-row">
+                <input type="range" id="spotify-popularity-input" class="spotify-range-slider" value="50" min="0" max="100">
+                <strong id="spotify-popularity-label">50/100</strong>
+              </div>
             </div>
             <div class="spotify-stat spotify-genres">
               <small>Gatunki</small>
@@ -233,7 +236,7 @@
             </div>
           </div>
           <div class="spotify-footer">
-            <p id="spotify-note">Dodaj sekrety Spotify na serwerze, aby wyświetlić surowe dane katalogowe. Spotify nie wpływa na scoring.</p>
+            <p id="spotify-note">Dodaj sekrety Spotify na serwerze, aby wyświetlić dane katalogowe. Użyj pól wyżej do symulacji popularności i obserwujących.</p>
             <a id="spotify-link" href="#" target="_blank" rel="noopener noreferrer" hidden>Otwórz profil w Spotify</a>
           </div>
         </article>
@@ -250,12 +253,20 @@
           <div class="economics-layout">
             <div class="economics-inputs">
               <label>
-                <span>Koszty stałe</span>
-                <span class="money-input"><input id="fixed-costs" type="number" min="0" step="1000" value="100000"><i>zł</i></span>
+                <span>Koszt sali / venue</span>
+                <span class="money-input"><input id="venue-cost" type="number" min="0" step="500" value="15000"><i>zł</i></span>
+              </label>
+              <label>
+                <span>Gaża artysty</span>
+                <span class="money-input"><input id="artist-fee" type="number" min="0" step="500" value="0"><i>zł</i></span>
+              </label>
+              <label>
+                <span>Inne koszty stałe</span>
+                <span class="money-input"><input id="fixed-costs" type="number" min="0" step="500" value="10000"><i>zł</i></span>
               </label>
               <label>
                 <span>Cena biletu</span>
-                <span class="money-input"><input id="ticket-price" type="number" min="0" step="1" value="149"><i>zł</i></span>
+                <span class="money-input"><input id="ticket-price" type="number" min="0" step="1" value="120"><i>zł</i></span>
               </label>
               <label>
                 <span>Opłaty biletowe</span>
@@ -301,6 +312,77 @@
               <span id="profit-p90-attendance">— osób</span>
             </div>
           </div>
+
+          <div class="economics-details-section" id="economics-details-section">
+            <h4 class="details-section-title">Szczegółowa projekcja finansowa</h4>
+            <table class="economics-details-table">
+              <thead>
+                <tr>
+                  <th>Pozycja</th>
+                  <th>Ostrożny (P10)</th>
+                  <th>Realny (P50)</th>
+                  <th>Optymistyczny (P90)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Prognozowana frekwencja</td>
+                  <td id="table-attendance-p10">—</td>
+                  <td id="table-attendance-p50">—</td>
+                  <td id="table-attendance-p90">—</td>
+                </tr>
+                <tr>
+                  <td>Przychód netto z biletów</td>
+                  <td id="table-ticket-p10">—</td>
+                  <td id="table-ticket-p50">—</td>
+                  <td id="table-ticket-p90">—</td>
+                </tr>
+                <tr>
+                  <td>Przychód dodatkowy (bar/merch)</td>
+                  <td id="table-ancillary-p10">—</td>
+                  <td id="table-ancillary-p50">—</td>
+                  <td id="table-ancillary-p90">—</td>
+                </tr>
+                <tr class="sum-row">
+                  <td>Przychody razem</td>
+                  <td id="table-rev-p10">—</td>
+                  <td id="table-rev-p50">—</td>
+                  <td id="table-rev-p90">—</td>
+                </tr>
+                <tr>
+                  <td>Koszty stałe (sala+gaża+inne)</td>
+                  <td id="table-fixed-p10">—</td>
+                  <td id="table-fixed-p50">—</td>
+                  <td id="table-fixed-p90">—</td>
+                </tr>
+                <tr>
+                  <td>Koszty zmienne</td>
+                  <td id="table-var-p10">—</td>
+                  <td id="table-var-p50">—</td>
+                  <td id="table-var-p90">—</td>
+                </tr>
+                <tr class="sum-row">
+                  <td>Koszty razem</td>
+                  <td id="table-costs-p10">—</td>
+                  <td id="table-costs-p50">—</td>
+                  <td id="table-costs-p90">—</td>
+                </tr>
+                <tr class="highlight-row">
+                  <td>Zysk / Strata netto</td>
+                  <td id="table-profit-p10">—</td>
+                  <td id="table-profit-p50">—</td>
+                  <td id="table-profit-p90">—</td>
+                </tr>
+                <tr class="highlight-row">
+                  <td>Zwrot z inwestycji (ROI)</td>
+                  <td id="table-roi-p10" class="roi-value">—</td>
+                  <td id="table-roi-p50" class="roi-value">—</td>
+                  <td id="table-roi-p90" class="roi-value">—</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
           <p class="disclaimer">Kalkulator używa podanych kosztów i modelowych scenariuszy frekwencji. Nie uwzględnia podatków ani indywidualnych zapisów umów.</p>
         </article>
 
