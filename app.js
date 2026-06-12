@@ -5,6 +5,10 @@ import {
   normalizeCity
 } from "./lib/analysis-core.js";
 import { calculateBreakEven } from "./lib/economics.js";
+import {
+  readEconomicsFromParams,
+  writeEconomicsToParams
+} from "./lib/scenario-state.js";
 import { toLocative } from "./lib/polish-cities.js";
 import { createAutocomplete, fetchArtistSuggestions, fetchCitySuggestions } from "./lib/autocomplete.js";
 
@@ -13,6 +17,7 @@ const results = document.querySelector("#results");
 const searchSection = document.querySelector("#search-section");
 const skeleton = document.querySelector("#skeleton");
 const newSearchButton = document.querySelector("#new-search");
+const shareAnalysisButton = document.querySelector("#share-analysis");
 const toastContainer = document.querySelector("#toast-container");
 const economicsInputs = {
   fixedCosts: document.querySelector("#fixed-costs"),
@@ -22,6 +27,7 @@ const economicsInputs = {
   ancillaryRevenuePerAttendee: document.querySelector("#ancillary-revenue")
 };
 let currentAnalysis = null;
+let urlUpdateTimer = null;
 
 /* ── Toast notifications ── */
 
@@ -63,6 +69,22 @@ const setProfit = (selector, value) => {
   element.textContent = formatCurrency(value);
   element.classList.toggle("profit-positive", value >= 0);
   element.classList.toggle("profit-negative", value < 0);
+};
+
+const economicsValues = () => Object.fromEntries(
+  Object.entries(economicsInputs).map(([field, input]) => [field, input.value])
+);
+
+const updateScenarioUrl = () => {
+  if (!currentAnalysis) return;
+  const url = new URL(window.location.href);
+  writeEconomicsToParams(url.searchParams, economicsValues());
+  window.history.replaceState({}, "", url);
+};
+
+const scheduleScenarioUrlUpdate = () => {
+  window.clearTimeout(urlUpdateTimer);
+  urlUpdateTimer = window.setTimeout(updateScenarioUrl, 180);
 };
 
 const fetchJson = async (url, options) => {
@@ -171,6 +193,7 @@ const renderEconomics = () => {
   status.textContent = realProfit >= 0 ? "P50 powyżej zera" : "P50 poniżej zera";
   status.classList.toggle("is-positive", realProfit >= 0);
   status.classList.toggle("is-negative", realProfit < 0);
+  scheduleScenarioUrlUpdate();
 };
 
 const showAnalysis = (analysis) => {
@@ -272,6 +295,18 @@ newSearchButton.addEventListener("click", () => {
   window.setTimeout(() => document.querySelector("#artist").focus(), 500);
 });
 
+shareAnalysisButton.addEventListener("click", async () => {
+  if (!currentAnalysis) return;
+  updateScenarioUrl();
+
+  try {
+    await navigator.clipboard.writeText(window.location.href);
+    showToast("Link do analizy został skopiowany.", "success");
+  } catch {
+    showToast("Nie udało się skopiować linku. Skopiuj adres z paska przeglądarki.", "error");
+  }
+});
+
 createAutocomplete({
   input: document.querySelector("#artist"),
   fetchSuggestions: fetchArtistSuggestions,
@@ -292,6 +327,11 @@ createAutocomplete({
 const initialParams = new URLSearchParams(window.location.search);
 const initialArtist = initialParams.get("artist");
 const initialCity = initialParams.get("city");
+const initialEconomics = readEconomicsFromParams(initialParams);
+
+for (const [field, value] of Object.entries(initialEconomics)) {
+  economicsInputs[field].value = value;
+}
 
 if (initialArtist && initialCity) {
   document.querySelector("#artist").value = initialArtist;

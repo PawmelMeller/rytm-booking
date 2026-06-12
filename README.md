@@ -31,6 +31,9 @@ Raport zawiera interaktywny kalkulator:
 - przychód dodatkowy na uczestnika,
 - próg rentowności oraz zysk dla P10/P50/P90 frekwencji.
 
+Parametry kalkulatora są zapisywane w adresie URL. Przycisk `Kopiuj analizę`
+tworzy odtwarzalny link zawierający artystę, miasto i założenia finansowe.
+
 ## Sekrety
 
 Sekrety należy ustawić wyłącznie po stronie hostingu. Ich nazwy znajdują się
