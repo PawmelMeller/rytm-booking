@@ -44,16 +44,34 @@
 
         <span class="search-divider" aria-hidden="true"></span>
 
-        <label class="field">
-          <span class="field-label">Miasto</span>
-          <span class="input-wrap">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"></path>
-              <circle cx="12" cy="10" r="2.5"></circle>
-            </svg>
-            <input id="city" name="city" type="text" placeholder="np. Gdańsk" autocomplete="off" required>
-          </span>
-        </label>
+        <div class="cities-section">
+          <div class="cities-container" id="cities-container">
+            <div class="city-field-wrapper">
+              <label class="field city-field" style="width: 100%; padding-bottom: 4px;">
+                <span class="field-label">Miasto</span>
+                <span class="input-wrap">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"></path>
+                    <circle cx="12" cy="10" r="2.5"></circle>
+                  </svg>
+                  <input id="city" class="city-input" name="city" type="text" placeholder="np. Gdańsk" autocomplete="off" required>
+                </span>
+              </label>
+            </div>
+          </div>
+          <div class="add-city-link-container">
+            <button type="button" class="add-city-btn" id="add-city-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="width: 10px; height: 10px; fill: none;">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              dodaj miasto
+            </button>
+            <button type="button" class="top-cities-btn" id="top-cities-btn">
+              Ranking TOP 10 miast
+            </button>
+          </div>
+        </div>
 
         <button type="submit">
           <span>Analizuj potencjał</span>
@@ -435,6 +453,50 @@
           <p class="disclaimer">Dane są przetwarzane lokalnie i zapisywane w pamięci tej przeglądarki. Import nie wysyła pliku na serwer.</p>
         </article>
       </div>
+    </section>
+
+    <section class="results" id="comparison" aria-live="polite" hidden>
+      <div class="result-heading">
+        <div>
+          <span class="result-kicker">Wyniki analizy porównawczej</span>
+          <h2 id="comparison-artist-title">Porównanie miast dla artysty</h2>
+        </div>
+        <div class="result-actions">
+          <button class="action-btn" id="new-search-comparison">Nowe wyszukiwanie</button>
+          <button class="action-btn" id="share-comparison">Kopiuj porównanie</button>
+          <button class="action-btn action-btn-primary" id="export-comparison">Eksport CSV</button>
+        </div>
+      </div>
+
+      <article class="comparison-card">
+        <div class="card-title">
+          <div>
+            <span class="card-kicker">Zestawienie rynków</span>
+            <h3>Które miasto spina się najlepiej?</h3>
+          </div>
+          <span class="comparison-count" id="comparison-count">0 miast</span>
+        </div>
+
+        <div class="comparison-table-container">
+          <table class="comparison-table">
+            <thead>
+              <tr>
+                <th>Miasto</th>
+                <th>Ocena (Score)</th>
+                <th>Prognoza P50</th>
+                <th>Rekomendacja sali</th>
+                <th>Próg rentowności</th>
+                <th>Zysk P50</th>
+                <th>ROI P50</th>
+                <th>Werdykt</th>
+              </tr>
+            </thead>
+            <tbody id="comparison-tbody">
+              <!-- Rows will be injected here -->
+            </tbody>
+          </table>
+        </div>
+      </article>
     </section>
   </main>
 

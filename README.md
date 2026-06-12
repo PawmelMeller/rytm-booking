@@ -34,6 +34,13 @@ Raport zawiera interaktywny kalkulator:
 Parametry kalkulatora są zapisywane w adresie URL. Przycisk `Kopiuj analizę`
 tworzy odtwarzalny link zawierający artystę, miasto i założenia finansowe.
 
+## Ranking miast
+
+Po wpisaniu artysty przycisk `Ranking TOP 10 miast` porównuje dziesięć
+głównych polskich rynków koncertowych. Ranking wykorzystuje aktualne założenia
+kalkulatora, sortuje miasta według zysku P50, a następnie ROI i score. Wynik
+można udostępnić linkiem lub pobrać jako CSV.
+
 ## Import historii promotera
 
 Raport przyjmuje pliki CSV, TSV, XLSX i XLS. Import:

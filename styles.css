@@ -1187,3 +1187,182 @@ footer {
   color: #ff9274;
 }
 
+/* ── Multiple Cities Input Layout ── */
+.cities-section {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.cities-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.city-field-wrapper {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.city-field-wrapper .field {
+  flex: 1;
+}
+
+.remove-city-btn {
+  background: transparent;
+  border: none;
+  color: #ff7448;
+  cursor: pointer;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s ease;
+  opacity: 0.6;
+  margin-top: 10px;
+}
+
+.remove-city-btn:hover {
+  opacity: 1;
+}
+
+.remove-city-btn svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.add-city-link-container {
+  padding-left: 21px;
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.add-city-btn {
+  background: transparent;
+  border: none;
+  color: #555750;
+  font-family: "DM Mono", monospace;
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px dashed rgba(0, 0, 0, 0.15);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s ease;
+}
+
+.add-city-btn:hover {
+  color: #171912;
+  border-color: rgba(0, 0, 0, 0.35);
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.top-cities-btn {
+  border: 1px solid rgba(215, 255, 79, 0.32);
+  border-radius: 999px;
+  padding: 7px 11px;
+  background: rgba(215, 255, 79, 0.08);
+  color: #293000;
+  font-family: "DM Mono", monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.top-cities-btn:hover {
+  background: rgba(215, 255, 79, 0.18);
+  border-color: rgba(215, 255, 79, 0.62);
+}
+
+/* ── Comparison Section ── */
+.comparison-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 24px;
+  margin-top: 24px;
+}
+
+.comparison-count {
+  color: var(--lime);
+  border: 1px solid rgba(215, 255, 79, 0.24);
+  border-radius: 999px;
+  padding: 7px 10px;
+  font-family: "DM Mono", monospace;
+  font-size: 9px;
+  text-transform: uppercase;
+}
+
+.action-btn-primary {
+  border-color: rgba(215, 255, 79, 0.34) !important;
+  color: var(--lime) !important;
+}
+
+.comparison-table-container {
+  overflow-x: auto;
+  margin-top: 20px;
+}
+
+.comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  color: #a4a69e;
+}
+
+.comparison-table th,
+.comparison-table td {
+  padding: 14px 16px;
+  text-align: right;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.comparison-table th:first-child,
+.comparison-table td:first-child {
+  text-align: left;
+  color: var(--ink);
+  font-weight: bold;
+}
+
+.comparison-table th {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #6f716a;
+  border-bottom: 1px solid var(--line);
+}
+
+.comparison-table tr.comparison-winner {
+  background: rgba(215, 255, 79, 0.03);
+}
+
+.comparison-table tr.comparison-winner td {
+  border-bottom-color: rgba(215, 255, 79, 0.1);
+}
+
+.comparison-table tr.comparison-winner td:first-child {
+  color: var(--lime);
+}
+
+.comparison-table td.roi-cell {
+  font-weight: bold;
+}
+

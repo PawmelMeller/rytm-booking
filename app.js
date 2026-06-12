@@ -5,6 +5,7 @@ import {
   normalizeCity
 } from "./lib/analysis-core.js";
 import { calculateFinancialProjection } from "./lib/financial.js";
+import { buildFinancialRanking, createRankingCsv } from "./lib/comparison.js";
 import {
   readEconomicsFromParams,
   writeEconomicsToParams
@@ -44,6 +45,18 @@ let historyFileName = null;
 const HISTORY_STORAGE_KEY = "rytm.promoterHistory.v1";
 const HISTORY_FILE_SIZE_LIMIT = 10 * 1024 * 1024;
 const HISTORY_PARSE_ROW_LIMIT = 5000;
+const TOP_POLISH_CITIES = [
+  "Warszawa",
+  "Kraków",
+  "Wrocław",
+  "Łódź",
+  "Poznań",
+  "Gdańsk",
+  "Szczecin",
+  "Lublin",
+  "Bydgoszcz",
+  "Białystok"
+];
 
 /* ── Toast notifications ── */
 
@@ -63,6 +76,7 @@ const showToast = (message, type = "error") => {
 
 const showSkeleton = () => {
   results.hidden = true;
+  document.querySelector("#comparison").hidden = true;
   skeleton.hidden = false;
   skeleton.scrollIntoView({ behavior: "smooth", block: "start" });
 };
@@ -222,7 +236,92 @@ const renderSpotify = (spotify) => {
   link.hidden = !spotify.artist.url;
 };
 
+let currentComparisonAnalyses = null;
+let currentComparisonRanking = [];
+
+const showComparison = (analyses) => {
+  currentComparisonAnalyses = analyses;
+  currentComparisonRanking = buildFinancialRanking(analyses, economicsValues());
+  const artistName = currentComparisonRanking[0].analysis.artist.name;
+
+  setText("#comparison-artist-title", `Porównanie miast dla artysty: ${artistName}`);
+  setText("#comparison-count", `${currentComparisonRanking.length} miast`);
+
+  const tbody = document.querySelector("#comparison-tbody");
+  tbody.replaceChildren();
+
+  currentComparisonRanking.forEach(({ analysis, financials: ecoResult }, index) => {
+    const tr = document.createElement("tr");
+    if (index === 0) {
+      tr.className = "comparison-winner";
+    }
+
+    const tdCity = document.createElement("td");
+    tdCity.textContent = analysis.city.name;
+
+    const tdScore = document.createElement("td");
+    tdScore.textContent = analysis.score;
+
+    const tdP50 = document.createElement("td");
+    tdP50.textContent = `${formatNumber(analysis.attendance.p50)} osób`;
+
+    const tdVenue = document.createElement("td");
+    tdVenue.textContent = analysis.recommendation.replace("Rozważ venue na ", "");
+
+    const tdBE = document.createElement("td");
+    tdBE.textContent = ecoResult.breakEvenAttendance === null
+      ? "Nieosiągalny"
+      : `${formatNumber(ecoResult.breakEvenAttendance)}`;
+
+    const tdProfit = document.createElement("td");
+    const p50Profit = ecoResult.scenarios.p50.profit;
+    tdProfit.textContent = formatCurrency(p50Profit);
+    tdProfit.className = p50Profit >= 0 ? "profit-positive" : "profit-negative";
+
+    const tdRoi = document.createElement("td");
+    const p50Roi = ecoResult.scenarios.p50.roi;
+    tdRoi.textContent = `${p50Roi > 0 ? "+" : ""}${p50Roi}%`;
+    tdRoi.className = `roi-cell ${p50Roi >= 0 ? "profit-positive" : "profit-negative"}`;
+
+    const tdVerdict = document.createElement("td");
+    tdVerdict.textContent = analysis.verdict;
+
+    tr.append(tdCity, tdScore, tdP50, tdVenue, tdBE, tdProfit, tdRoi, tdVerdict);
+    tbody.append(tr);
+  });
+
+  hideSkeleton();
+  results.hidden = true;
+  document.querySelector("#comparison").hidden = false;
+  document.querySelector("#comparison").scrollIntoView({ behavior: "smooth", block: "start" });
+};
+
+const requestAnalysesWithLimit = async (artist, cities, concurrency = 3) => {
+  const results = new Array(cities.length);
+  let nextIndex = 0;
+
+  const worker = async () => {
+    while (nextIndex < cities.length) {
+      const index = nextIndex;
+      nextIndex += 1;
+      results[index] = await requestAnalysis(artist, cities[index]);
+    }
+  };
+
+  await Promise.all(
+    Array.from({ length: Math.min(concurrency, cities.length) }, () => worker())
+  );
+  return results;
+};
+
 const renderEconomics = () => {
+  const comparisonEl = document.querySelector("#comparison");
+  if (comparisonEl && !comparisonEl.hidden && currentComparisonAnalyses) {
+    showComparison(currentComparisonAnalyses);
+    scheduleScenarioUrlUpdate();
+    return;
+  }
+
   if (!currentAnalysis) return;
   const result = calculateFinancialProjection({
     fixedCosts: economicsInputs.fixedCosts.value,
@@ -428,11 +527,12 @@ const showAnalysis = (analysis) => {
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
   const artist = document.querySelector("#artist").value.trim();
-  const city = document.querySelector("#city").value.trim();
+  const cityInputs = Array.from(document.querySelectorAll(".city-input"));
+  const cityNames = cityInputs.map(input => input.value.trim()).filter(val => val.length >= 2);
 
-  if (!artist || !city) return;
+  if (!artist || cityNames.length === 0) return;
 
-  const button = form.querySelector("button");
+  const button = form.querySelector('button[type="submit"]');
   const originalLabel = button.innerHTML;
   button.disabled = true;
   button.querySelector("span").textContent = "Analizuję...";
@@ -440,12 +540,25 @@ form.addEventListener("submit", async (event) => {
   showSkeleton();
 
   try {
-    const analysis = await requestAnalysis(artist, city);
-    showAnalysis(analysis);
-    const url = new URL(window.location.href);
-    url.searchParams.set("artist", artist);
-    url.searchParams.set("city", city);
-    window.history.replaceState({}, "", url);
+    if (cityNames.length === 1) {
+      const analysis = await requestAnalysis(artist, cityNames[0]);
+      showAnalysis(analysis);
+
+      const url = new URL(window.location.href);
+      url.searchParams.set("artist", artist);
+      url.searchParams.set("city", cityNames[0]);
+      url.searchParams.delete("cities");
+      window.history.replaceState({}, "", url);
+    } else {
+      const analyses = await requestAnalysesWithLimit(artist, cityNames);
+      showComparison(analyses);
+
+      const url = new URL(window.location.href);
+      url.searchParams.set("artist", artist);
+      url.searchParams.set("cities", cityNames.join(","));
+      url.searchParams.delete("city");
+      window.history.replaceState({}, "", url);
+    }
   } catch (error) {
     hideSkeleton();
     showToast(error.message || "Nie udało się przeprowadzić analizy.", "error");
@@ -522,7 +635,7 @@ historyTemplateButton.addEventListener("click", () => {
 createAutocomplete({
   input: document.querySelector("#artist"),
   fetchSuggestions: fetchArtistSuggestions,
-  onSelect: () => document.querySelector("#city").focus()
+  onSelect: () => document.querySelector(".city-input").focus()
 });
 
 Object.values(economicsInputs).forEach((input) => {
@@ -530,8 +643,163 @@ Object.values(economicsInputs).forEach((input) => {
 });
 
 createAutocomplete({
-  input: document.querySelector("#city"),
+  input: document.querySelector(".city-input"),
   fetchSuggestions: fetchCitySuggestions
+});
+
+const addCityField = (value = "", focus = true) => {
+  const container = document.querySelector("#cities-container");
+  const count = container.querySelectorAll(".city-field-wrapper").length;
+  if (count >= 10) {
+    showToast("Możesz dodać maksymalnie 10 miast do porównania.", "error");
+    return;
+  }
+
+  const wrapper = document.createElement("div");
+  wrapper.className = "city-field-wrapper";
+
+  const label = document.createElement("label");
+  label.className = "field city-field";
+  label.style.width = "100%";
+  label.style.paddingBottom = "4px";
+
+  const spanLabel = document.createElement("span");
+  spanLabel.className = "field-label";
+  spanLabel.textContent = `Miasto ${count + 1}`;
+
+  const wrap = document.createElement("span");
+  wrap.className = "input-wrap";
+
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("aria-hidden", "true");
+
+  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  path.setAttribute("d", "M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z");
+  const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  circle.setAttribute("cx", "12");
+  circle.setAttribute("cy", "10");
+  circle.setAttribute("r", "2.5");
+  svg.append(path, circle);
+
+  const input = document.createElement("input");
+  input.className = "city-input";
+  input.type = "text";
+  input.placeholder = "np. Kraków";
+  input.autocomplete = "off";
+  input.required = true;
+  input.value = value;
+
+  wrap.append(svg, input);
+  label.append(spanLabel, wrap);
+  wrapper.append(label);
+
+  const removeBtn = document.createElement("button");
+  removeBtn.type = "button";
+  removeBtn.className = "remove-city-btn";
+  removeBtn.ariaLabel = "Usuń miasto";
+
+  const removeSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  removeSvg.setAttribute("viewBox", "0 0 24 24");
+  removeSvg.setAttribute("fill", "none");
+  removeSvg.setAttribute("stroke", "currentColor");
+  removeSvg.setAttribute("stroke-width", "2.5");
+  removeSvg.setAttribute("stroke-linecap", "round");
+  removeSvg.setAttribute("stroke-linejoin", "round");
+
+  const removePath1 = document.createElementNS("http://www.w3.org/2000/svg", "line");
+  removePath1.setAttribute("x1", "18");
+  removePath1.setAttribute("y1", "6");
+  removePath1.setAttribute("x2", "6");
+  removePath1.setAttribute("y2", "18");
+  const removePath2 = document.createElementNS("http://www.w3.org/2000/svg", "line");
+  removePath2.setAttribute("x1", "6");
+  removePath2.setAttribute("y1", "6");
+  removePath2.setAttribute("x2", "18");
+  removePath2.setAttribute("y2", "18");
+  removeSvg.append(removePath1, removePath2);
+  removeBtn.append(removeSvg);
+
+  removeBtn.addEventListener("click", () => {
+    wrapper.remove();
+    const wrappers = container.querySelectorAll(".city-field-wrapper");
+    wrappers.forEach((w, index) => {
+      if (index > 0) {
+        w.querySelector(".field-label").textContent = `Miasto ${index + 1}`;
+      } else {
+        w.querySelector(".field-label").textContent = `Miasto`;
+      }
+    });
+  });
+
+  wrapper.append(removeBtn);
+  container.append(wrapper);
+
+  createAutocomplete({
+    input: input,
+    fetchSuggestions: fetchCitySuggestions
+  });
+
+  if (focus) input.focus();
+};
+
+document.querySelector("#add-city-btn").addEventListener("click", () => addCityField(""));
+
+document.querySelector("#top-cities-btn").addEventListener("click", () => {
+  const artist = document.querySelector("#artist").value.trim();
+  if (!artist) {
+    showToast("Najpierw wpisz artystę.", "error");
+    document.querySelector("#artist").focus();
+    return;
+  }
+
+  const container = document.querySelector("#cities-container");
+  const wrappers = Array.from(container.querySelectorAll(".city-field-wrapper"));
+  wrappers.slice(1).forEach((wrapper) => wrapper.remove());
+  document.querySelector(".city-input").value = TOP_POLISH_CITIES[0];
+  TOP_POLISH_CITIES.slice(1).forEach((city) => addCityField(city, false));
+  form.requestSubmit();
+});
+
+document.querySelector("#new-search-comparison").addEventListener("click", () => {
+  searchSection.scrollIntoView({ behavior: "smooth", block: "start" });
+  window.setTimeout(() => document.querySelector("#artist").focus(), 500);
+});
+
+document.querySelector("#share-comparison").addEventListener("click", async () => {
+  if (!currentComparisonAnalyses) return;
+  const url = new URL(window.location.href);
+  url.searchParams.set("artist", document.querySelector("#artist").value.trim());
+  const cities = Array.from(document.querySelectorAll(".city-input"))
+    .map(input => input.value.trim())
+    .filter(val => val.length >= 2);
+  url.searchParams.set("cities", cities.join(","));
+  writeEconomicsToParams(url.searchParams, economicsValues());
+  window.history.replaceState({}, "", url);
+
+  try {
+    await navigator.clipboard.writeText(url.href);
+    showToast("Link do porównania został skopiowany.", "success");
+  } catch {
+    showToast("Nie udało się skopiować linku. Skopiuj adres z paska przeglądarki.", "error");
+  }
+});
+
+document.querySelector("#export-comparison").addEventListener("click", () => {
+  if (!currentComparisonRanking.length) return;
+
+  const csv = createRankingCsv(currentComparisonRanking);
+  const blob = new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `rytm-ranking-${currentComparisonRanking[0].analysis.artist.name
+    .toLocaleLowerCase("pl-PL")
+    .replaceAll(/[^a-z0-9ąćęłńóśźż]+/gi, "-")
+    .replace(/^-|-$/g, "")}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+  showToast("Ranking CSV został pobrany.", "success");
 });
 
 const recalculateAndShow = () => {
@@ -582,6 +850,7 @@ spotifyPopularityInput.addEventListener("input", () => {
 const initialParams = new URLSearchParams(window.location.search);
 const initialArtist = initialParams.get("artist");
 const initialCity = initialParams.get("city");
+const initialCities = initialParams.get("cities") ? initialParams.get("cities").split(",") : null;
 const initialEconomics = readEconomicsFromParams(initialParams);
 
 restoreHistory();
@@ -591,8 +860,16 @@ for (const [field, value] of Object.entries(initialEconomics)) {
   economicsInputs[field].value = value;
 }
 
-if (initialArtist && initialCity) {
+if (initialArtist) {
   document.querySelector("#artist").value = initialArtist;
-  document.querySelector("#city").value = initialCity;
-  form.requestSubmit();
+  if (initialCity) {
+    document.querySelector(".city-input").value = initialCity;
+    form.requestSubmit();
+  } else if (initialCities && initialCities.length > 0) {
+    document.querySelector(".city-input").value = initialCities[0];
+    for (let i = 1; i < initialCities.length; i++) {
+      addCityField(initialCities[i]);
+    }
+    form.requestSubmit();
+  }
 }
